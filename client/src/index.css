@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #f4f5f7;
+  background: #0b0d17;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+@layer components {
+  /* Solid, restrained surface — replaces the old frosted glass.
+     Kept the .glass name so existing pages continue to render. */
+  .glass {
+    background: #171b2d;
+    border: 1px solid #272d42;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Slightly deeper surface for prominent panels (auth / unlock cards). */
+  .glass-strong {
+    background: #111426;
+    border: 1px solid #272d42;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  }
+
+  .text-muted {
+    color: #8b93a7;
+  }
+}
+
+/* Subtle, brand-tinted focus ring for keyboard users */
+*:focus-visible {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

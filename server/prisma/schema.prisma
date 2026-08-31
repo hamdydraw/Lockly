@@ -1,0 +1,85 @@
+// Prisma schema — SQLite (local file). Swap `provider` to "postgresql" for server deploys.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String      @id @default(cuid())
+  email          String      @unique
+  // argon2 hash of the account LOGIN password (authentication)
+  passwordHash   String
+  // Per-user random data key (DK), used to encrypt all vault items & files.
+  // Wrapped (AES-256-GCM) by a key derived from the MASTER password — normal unlock path.
+  wrappedDataKey String
+  // Same DK, wrapped by the server root key (DATA_ENCRYPTION_KEY) — recovery escrow.
+  // Lets an admin/login-based reset recover data if the master password is forgotten.
+  recoveryKey    String
+  // Salt for deriving the master-password key (scrypt).
+  masterSalt     String
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  items          VaultItem[]
+  files          StoredFile[]
+  auditLogs      AuditLog[]
+}
+
+model VaultItem {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // LOGIN | SECURE_NOTE | CARD | OTHER  (validated in app layer via zod)
+  type       String   @default("LOGIN")
+  title      String
+  folder     String?
+  username   String?
+  url        String?
+
+  // Encrypted secret payload (password, card number, note body, ...) as AES-256-GCM.
+  ciphertext String
+  iv         String
+  authTag    String
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, folder])
+}
+
+model StoredFile {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  filename    String
+  mimeType    String
+  sizeBytes   Int
+  storagePath String
+  iv          String
+  authTag     String
+
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  action    String
+  itemId    String?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
