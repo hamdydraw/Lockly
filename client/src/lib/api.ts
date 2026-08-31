@@ -1,6 +1,8 @@
 import type { FileMeta, ItemFull, ItemInput, ItemMeta, Session } from './types';
 
-const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+// Dev talks to the standalone API on :4000; the production build serves the SPA
+// from the same origin as the API, so VITE_API_URL is set to "/api" there.
+const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api';
 
 export class ApiError extends Error {
   status: number;

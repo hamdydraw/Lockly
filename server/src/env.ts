@@ -22,4 +22,9 @@ export const env = {
   PORT: Number(process.env.PORT ?? 4000),
   NODE_ENV: process.env.NODE_ENV ?? 'development',
   CORS_ORIGIN: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
+  // Persistent blob dir (set to a mounted volume in production). storage.ts reads
+  // process.env.STORAGE_DIR directly; mirrored here for visibility.
+  STORAGE_DIR: process.env.STORAGE_DIR ?? '',
+  // "true" reopens the register endpoint after the first account is created.
+  ALLOW_REGISTRATION: process.env.ALLOW_REGISTRATION ?? '',
 };

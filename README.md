@@ -9,6 +9,9 @@ dark, security-focused UI (Linear / 1Password vibe).
 - **Database:** SQLite (local file — no server needed)
 - **Crypto:** AES-256-GCM at rest, master-password unlock, argon2 login hashing
 
+> 🚀 **Want it online?** See [DEPLOY.md](DEPLOY.md) to host it at a public URL on
+> Railway/Render as a single service (the server serves the SPA + API together).
+
 ## Prerequisites
 
 - Node.js 20+ (tested on 22)

@@ -7,7 +7,11 @@ import { fileURLToPath } from 'node:url';
  * Swap this module for S3/R2 later without touching the routes.
  */
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const STORAGE_DIR = path.resolve(__dirname, '..', '..', 'storage');
+// In production, point STORAGE_DIR at a persistent volume (e.g. /data/storage on
+// Railway) so encrypted blobs survive redeploys. Defaults to server/storage locally.
+const STORAGE_DIR = process.env.STORAGE_DIR
+  ? path.resolve(process.env.STORAGE_DIR)
+  : path.resolve(__dirname, '..', '..', 'storage');
 
 async function ensureDir(): Promise<void> {
   await fs.mkdir(STORAGE_DIR, { recursive: true });

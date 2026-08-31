@@ -1,8 +1,8 @@
 {
-  "name": "secure-vault",
+  "name": "lockly",
   "version": "0.1.0",
   "private": true,
-  "description": "Secure password & file vault web app (glassmorphism UI)",
+  "description": "Lockly — self-hosted secure password & file vault",
   "workspaces": [
     "server",
     "client"
@@ -12,6 +12,7 @@
     "dev:server": "npm run dev --workspace server",
     "dev:client": "npm run dev --workspace client",
     "build": "npm run build --workspace server && npm run build --workspace client",
+    "start": "npm run start --workspace server",
     "prisma:migrate": "npm run prisma:migrate --workspace server",
     "prisma:studio": "npm run prisma:studio --workspace server",
     "test": "npm run test --workspace server"

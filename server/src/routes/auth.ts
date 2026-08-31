@@ -2,6 +2,7 @@ import argon2 from 'argon2';
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db/prisma.js';
+import { env } from '../env.js';
 import { clearAuthCookie, requireAuth, setAuthCookie } from '../middleware/auth.js';
 import { HttpError } from '../middleware/error.js';
 import { audit } from '../services/audit.js';
@@ -40,6 +41,13 @@ const resetSchema = z.object({
 /** POST /auth/register — create account, provision data key + escrow, sign in. */
 authRouter.post('/register', async (req, res) => {
   const { email, password, masterPassword } = registerSchema.parse(req.body);
+
+  // Single-user vault: once an account exists, registration is closed on public
+  // deploys so nobody else can sign up. Set ALLOW_REGISTRATION=true to reopen it.
+  if (env.ALLOW_REGISTRATION !== 'true') {
+    const userCount = await prisma.user.count();
+    if (userCount > 0) throw new HttpError(403, 'Registration is closed.');
+  }
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) throw new HttpError(409, 'An account with that email already exists');
