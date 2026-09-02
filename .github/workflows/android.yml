@@ -1,0 +1,55 @@
+name: Android APK
+
+# Builds the Capacitor Android app and publishes the APK as a workflow
+# artifact. Debug-signed, which is all a self-installed personal build needs —
+# it is installable via "unknown sources" but not publishable to Play.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'client/**'
+      - 'package-lock.json'
+      - '.github/workflows/android.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.19'
+          cache: npm
+
+      # AGP 8.7 requires JDK 17+; the Capacitor 7 template is built against 21.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web assets
+        run: npm run build --workspace client
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+        working-directory: client
+
+      - name: Assemble debug APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+        working-directory: client/android
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lockly-apk
+          path: client/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

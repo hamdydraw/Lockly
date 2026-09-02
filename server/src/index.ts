@@ -34,7 +34,23 @@ app.use(
     },
   }),
 );
-app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
+// The Android (Capacitor) build runs in a WebView whose pages are served from a
+// local scheme, so its Origin is one of these rather than the deploy's URL.
+const CAPACITOR_ORIGINS = ['https://localhost', 'http://localhost', 'capacitor://localhost'];
+
+const allowedOrigins = new Set([
+  ...env.CORS_ORIGIN.split(',').map((o) => o.trim()),
+  ...env.CORS_EXTRA_ORIGINS.split(',').map((o) => o.trim()),
+  ...CAPACITOR_ORIGINS,
+].filter(Boolean));
+
+app.use(
+  cors({
+    // No Origin header (same-origin, curl, native HTTP clients) → allow.
+    origin: (origin, cb) => cb(null, !origin || allowedOrigins.has(origin)),
+    credentials: true,
+  }),
+);
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 

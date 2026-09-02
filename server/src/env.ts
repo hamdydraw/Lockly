@@ -22,6 +22,9 @@ export const env = {
   PORT: Number(process.env.PORT ?? 4000),
   NODE_ENV: process.env.NODE_ENV ?? 'development',
   CORS_ORIGIN: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
+  // Extra allowed origins, comma-separated. The Android APK is a WebView served
+  // from its own origin (see CAPACITOR_ORIGINS in index.ts), never the web app's.
+  CORS_EXTRA_ORIGINS: process.env.CORS_EXTRA_ORIGINS ?? '',
   // Persistent blob dir (set to a mounted volume in production). storage.ts reads
   // process.env.STORAGE_DIR directly; mirrored here for visibility.
   STORAGE_DIR: process.env.STORAGE_DIR ?? '',

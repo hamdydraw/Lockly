@@ -1,4 +1,4 @@
-import { ShieldAlert } from 'lucide-react';
+import { Plug, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { StrengthMeter } from '../components/StrengthMeter';
 import { GlassButton } from '../components/ui/GlassButton';
@@ -7,12 +7,14 @@ import { GlassInput } from '../components/ui/GlassInput';
 import { useToast } from '../components/ui/Toast';
 import { useAuth } from '../auth/AuthProvider';
 import { api, ApiError } from '../lib/api';
+import { clearApiBase, getApiBase, isNative, serverOrigin } from '../lib/config';
 
 export function SettingsPage() {
   const { session } = useAuth();
   const toast = useToast();
   const [newMaster, setNewMaster] = useState('');
   const [busy, setBusy] = useState(false);
+  const apiBase = getApiBase();
 
   async function resetMaster(e: React.FormEvent) {
     e.preventDefault();
@@ -36,6 +38,24 @@ export function SettingsPage() {
         <h2 className="mb-1 font-semibold">Account</h2>
         <p className="text-sm text-muted">{session?.email}</p>
       </GlassCard>
+
+      {isNative && apiBase && (
+        <GlassCard className="mb-4">
+          <h2 className="mb-1 font-semibold">Server</h2>
+          <p className="mb-4 break-all text-sm text-muted">{serverOrigin(apiBase)}</p>
+          <GlassButton
+            variant="ghost"
+            onClick={() => {
+              // Signs out locally and sends the app back to the setup screen.
+              clearApiBase();
+              window.location.reload();
+            }}
+          >
+            <Plug className="h-4 w-4" />
+            Change server
+          </GlassButton>
+        </GlassCard>
+      )}
 
       <GlassCard>
         <h2 className="mb-1 font-semibold">Change master password</h2>

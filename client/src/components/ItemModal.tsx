@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Eye, EyeOff, Trash2, Wand2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { api, ApiError } from '../lib/api';
+import { copyText } from '../lib/clipboard';
 import type { ItemInput, ItemType } from '../lib/types';
 import { PasswordGenerator } from './PasswordGenerator';
 import { StrengthMeter } from './StrengthMeter';
@@ -89,13 +90,16 @@ export function ItemModal({ open, onClose, itemId }: Props) {
     },
   });
 
-  function copyPassword() {
+  async function copyPassword() {
     const pw = form.secret.password ?? '';
     if (!pw) return;
-    navigator.clipboard.writeText(pw);
+    if (!(await copyText(pw))) {
+      toast('Could not access the clipboard', 'error');
+      return;
+    }
     toast('Password copied — clears in 20s', 'info');
     // Auto-clear clipboard after 20s for safety.
-    setTimeout(() => navigator.clipboard.writeText('').catch(() => {}), 20_000);
+    setTimeout(() => void copyText(''), 20_000);
   }
 
   const setSecret = (k: string, v: string) =>

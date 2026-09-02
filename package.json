@@ -16,6 +16,9 @@
     "dev:client": "npm run dev --workspace client",
     "build": "npm run build --workspace server && npm run build --workspace client",
     "start": "npm run start --workspace server",
+    "android:sync": "npm run build --workspace client && npm run cap:sync --workspace client",
+    "android:build": "npm run android:sync && npm run cap:assemble --workspace client",
+    "android:install": "npm run android:build && npm run cap:install --workspace client",
     "prisma:migrate": "npm run prisma:migrate --workspace server",
     "prisma:studio": "npm run prisma:studio --workspace server",
     "test": "npm run test --workspace server"

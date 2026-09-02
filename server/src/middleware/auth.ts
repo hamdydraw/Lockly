@@ -26,6 +26,16 @@ export function clearAuthCookie(res: Response): void {
   res.clearCookie(COOKIE_NAME);
 }
 
+/**
+ * True when the caller wants the JWT in the response body instead of a cookie.
+ * The Android build is a WebView on its own origin, so a SameSite=lax cookie is
+ * never sent back; it opts in with this header and uses `Authorization: Bearer`.
+ * Browsers keep the httpOnly cookie (unreadable by page JS) by not opting in.
+ */
+export function wantsBodyToken(req: Request): boolean {
+  return req.headers['x-auth-mode'] === 'token';
+}
+
 /** Verifies the JWT from the cookie (or Bearer header) and sets req.userId. */
 export function requireAuth(req: Request, _res: Response, next: NextFunction): void {
   const bearer = req.headers.authorization?.startsWith('Bearer ')

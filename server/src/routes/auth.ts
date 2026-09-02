@@ -3,7 +3,13 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db/prisma.js';
 import { env } from '../env.js';
-import { clearAuthCookie, requireAuth, setAuthCookie } from '../middleware/auth.js';
+import {
+  clearAuthCookie,
+  requireAuth,
+  setAuthCookie,
+  signToken,
+  wantsBodyToken,
+} from '../middleware/auth.js';
 import { HttpError } from '../middleware/error.js';
 import { audit } from '../services/audit.js';
 import {
@@ -70,7 +76,12 @@ authRouter.post('/register', async (req, res) => {
   // Registering also unlocks the vault for convenience.
   const expiresAt = unlockStore.unlock(user.id, dataKey, Date.now());
   await audit(req, user.id, 'register');
-  res.status(201).json({ id: user.id, email: user.email, unlockedUntil: expiresAt });
+  res.status(201).json({
+    id: user.id,
+    email: user.email,
+    unlockedUntil: expiresAt,
+    ...(wantsBodyToken(req) ? { token: signToken(user.id) } : {}),
+  });
 });
 
 /** POST /auth/login — verify login password, set session cookie. Vault stays locked. */
@@ -83,7 +94,12 @@ authRouter.post('/login', async (req, res) => {
 
   setAuthCookie(res, user.id);
   await audit(req, user.id, 'login');
-  res.json({ id: user.id, email: user.email, locked: true });
+  res.json({
+    id: user.id,
+    email: user.email,
+    locked: true,
+    ...(wantsBodyToken(req) ? { token: signToken(user.id) } : {}),
+  });
 });
 
 /** POST /auth/logout — clear cookie and lock the vault. */

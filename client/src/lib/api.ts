@@ -1,8 +1,29 @@
+import { getApiBase, getToken, isNative, setToken, clearToken } from './config';
+import { saveBlob } from './download';
 import type { FileMeta, ItemFull, ItemInput, ItemMeta, Session } from './types';
 
-// Dev talks to the standalone API on :4000; the production build serves the SPA
-// from the same origin as the API, so VITE_API_URL is set to "/api" there.
-const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api';
+/**
+ * Resolved per call rather than at module load: on Android the user can point
+ * the app at a different server without a restart.
+ */
+function base(): string {
+  const b = getApiBase();
+  if (!b) throw new ApiError(0, 'No Lockly server configured');
+  return b;
+}
+
+/**
+ * Native builds authenticate with a bearer token (see wantsBodyToken on the
+ * server); browsers keep using the httpOnly cookie.
+ */
+function authHeaders(): Record<string, string> {
+  if (!isNative) return {};
+  const token = getToken();
+  return {
+    'X-Auth-Mode': 'token',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
 
 export class ApiError extends Error {
   status: number;
@@ -13,11 +34,23 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
-    ...init,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${base()}${path}`, {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(),
+        ...(init?.headers ?? {}),
+      },
+      ...init,
+    });
+  } catch (err) {
+    // fetch only rejects on transport failure — unreachable host, DNS, TLS,
+    // or a blocked cleartext request. Surface it as something actionable.
+    if (err instanceof ApiError) throw err;
+    throw new ApiError(0, "Can't reach the Lockly server. Check the address and that it's running.");
+  }
   if (!res.ok) {
     let message = res.statusText;
     try {
@@ -33,16 +66,38 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return text ? (JSON.parse(text) as T) : (undefined as T);
 }
 
+/** Stashes the token native builds get back instead of a cookie. */
+function keepToken<T extends { token?: string }>(result: T): T {
+  if (isNative && result?.token) setToken(result.token);
+  return result;
+}
+
 export const api = {
+  /** Unauthenticated reachability probe, used by the Android setup screen. */
+  health: (apiBase: string) =>
+    fetch(`${apiBase}/health`, { headers: { Accept: 'application/json' } }).then(async (res) => {
+      if (!res.ok) throw new ApiError(res.status, `Server responded ${res.status}`);
+      const body = (await res.json()) as { service?: string };
+      if (body.service !== 'lockly') throw new ApiError(0, 'That address is not a Lockly server');
+      return body;
+    }),
+
   // ---- auth ----
   register: (email: string, password: string, masterPassword: string) =>
-    request<Session>('/auth/register', {
+    request<Session & { token?: string }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password, masterPassword }),
-    }),
+    }).then(keepToken),
   login: (email: string, password: string) =>
-    request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
-  logout: () => request('/auth/logout', { method: 'POST' }),
+    request<{ token?: string }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }).then(keepToken),
+  logout: () =>
+    request('/auth/logout', { method: 'POST' }).finally(() => {
+      // Drop the local token even if the call failed — the user asked to sign out.
+      if (isNative) clearToken();
+    }),
   me: () => request<Session>('/auth/me'),
   unlock: (masterPassword: string) =>
     request('/auth/unlock', { method: 'POST', body: JSON.stringify({ masterPassword }) }),
@@ -68,9 +123,10 @@ export const api = {
   uploadFile: async (file: File) => {
     const form = new FormData();
     form.append('file', file);
-    const res = await fetch(`${BASE}/files`, {
+    const res = await fetch(`${base()}/files`, {
       method: 'POST',
       credentials: 'include',
+      headers: authHeaders(), // no Content-Type: the browser sets the multipart boundary
       body: form,
     });
     if (!res.ok) {
@@ -80,15 +136,12 @@ export const api = {
     return res.json() as Promise<FileMeta>;
   },
   downloadFile: async (id: string, filename: string) => {
-    const res = await fetch(`${BASE}/files/${id}/download`, { credentials: 'include' });
+    const res = await fetch(`${base()}/files/${id}/download`, {
+      credentials: 'include',
+      headers: authHeaders(),
+    });
     if (!res.ok) throw new ApiError(res.status, 'Download failed');
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
+    await saveBlob(await res.blob(), filename);
   },
   deleteFile: (id: string) => request(`/files/${id}`, { method: 'DELETE' }),
 };
