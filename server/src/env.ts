@@ -25,8 +25,10 @@ export const env = {
   // Extra allowed origins, comma-separated. The Android APK is a WebView served
   // from its own origin (see CAPACITOR_ORIGINS in index.ts), never the web app's.
   CORS_EXTRA_ORIGINS: process.env.CORS_EXTRA_ORIGINS ?? '',
-  // Persistent blob dir (set to a mounted volume in production). storage.ts reads
-  // process.env.STORAGE_DIR directly; mirrored here for visibility.
+  // Where encrypted file bytes live: "disk" (STORAGE_DIR, needs a persistent volume) or
+  // "db" (Blob table — the hosted default when DATABASE_URL is not a local file).
+  // storage.ts reads these from process.env directly; mirrored here for visibility.
+  BLOB_STORAGE: process.env.BLOB_STORAGE ?? '',
   STORAGE_DIR: process.env.STORAGE_DIR ?? '',
   // "true" reopens the register endpoint after the first account is created.
   ALLOW_REGISTRATION: process.env.ALLOW_REGISTRATION ?? '',

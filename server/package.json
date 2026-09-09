@@ -8,11 +8,13 @@
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "prisma generate && tsc -p tsconfig.json",
-    "start": "prisma migrate deploy && node dist/index.js",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:generate": "prisma generate",
-    "prisma:studio": "prisma studio",
+    "build": "node scripts/prisma.mjs generate && tsc -p tsconfig.json",
+    "start": "node scripts/prisma.mjs migrate deploy && node dist/index.js",
+    "prisma:migrate": "node scripts/prisma.mjs migrate dev",
+    "prisma:generate": "node scripts/prisma.mjs generate",
+    "prisma:studio": "node scripts/prisma.mjs studio",
+    "prisma:pg-init": "node scripts/prisma.mjs pg-init",
+    "prisma:pg-migration": "node scripts/prisma.mjs pg-migration",
     "test": "vitest run"
   },
   "dependencies": {

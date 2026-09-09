@@ -11,10 +11,11 @@ import { deleteBlob, readBlob, writeBlob } from '../services/storage.js';
 
 export const filesRouter = Router();
 
-// In-memory upload → encrypt → write to disk. 25 MB cap.
+// In-memory upload → encrypt → persist. 10 MB cap: the Prisma engine round-trips bytes as
+// base64 JSON, so a single upload transiently costs ~6× its size in RAM on a 512 MB host.
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 filesRouter.use(requireAuth, requireUnlocked);

@@ -1,3 +1,4 @@
+// GENERATED from ../schema.prisma by scripts/prisma.mjs — do not edit.
 // Prisma schema — SOURCE OF TRUTH (SQLite for local dev).
 //
 // `scripts/prisma.mjs` derives `prisma/postgres/schema.prisma` from this file (same models,
@@ -8,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

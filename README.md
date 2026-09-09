@@ -6,11 +6,11 @@ dark, security-focused UI (Linear / 1Password vibe).
 
 - **Frontend:** React + Vite + TypeScript, Tailwind, Framer Motion, TanStack Query
 - **Backend:** Node + Express + TypeScript, Prisma
-- **Database:** SQLite (local file — no server needed)
+- **Database:** SQLite locally (no server needed); Postgres (e.g. free Neon) when hosted
 - **Crypto:** AES-256-GCM at rest, master-password unlock, argon2 login hashing
 
-> 🚀 **Want it online?** See [DEPLOY.md](DEPLOY.md) to host it at a public URL on
-> Railway/Render as a single service (the server serves the SPA + API together).
+> 🚀 **Want it online for free?** See [DEPLOY.md](DEPLOY.md): Render (free web service)
+> + Neon (free Postgres), one click from a Blueprint. The server serves the SPA + API together.
 
 ## Prerequisites
 
@@ -73,9 +73,11 @@ memory during an unlock session and auto-locks after 15 minutes of inactivity.
 
 - Serve strictly over **HTTPS**; the auth cookie is marked `secure` when `NODE_ENV=production`.
 - Load `DATA_ENCRYPTION_KEY` and `JWT_SECRET` from a secret manager, not a file.
-- To move off SQLite, change `provider` in `server/prisma/schema.prisma` to `postgresql`
-  and set `DATABASE_URL` accordingly; the app code is unchanged.
-- Encrypted file blobs live in `server/storage/` — back it up alongside the database.
+- Point `DATABASE_URL` at a Postgres URL and the build picks the Postgres schema/migrations
+  automatically (`server/scripts/prisma.mjs`); `server/prisma/schema.prisma` (SQLite) stays
+  the source of truth and `prisma/postgres/` is derived from it.
+- Encrypted file blobs live on disk in `server/storage/` by default, or in the database
+  (`BLOB_STORAGE=db`) on hosts without a persistent disk. Back up whichever you use.
 
 ## Project layout
 

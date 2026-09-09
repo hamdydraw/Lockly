@@ -57,8 +57,10 @@ but the app will warn you, and it is not something to do on public or office Wi-
 
 ### A public deployment
 
-Deploy the server as described in [DEPLOY.md](DEPLOY.md) and enter the `https://` URL. This
-is the better option: it works on mobile data, from anywhere, and the connection is encrypted.
+Deploy the server for free as described in [DEPLOY.md](DEPLOY.md) (Render + Neon) and enter
+the `https://` URL, e.g. `https://lockly-xxxx.onrender.com`. This is the better option: it works
+on mobile data, from anywhere, and the connection is encrypted. On the free plan the server
+sleeps after 15 idle minutes, so the first request can take about a minute — wait and retry.
 
 ## How the mobile build differs
 

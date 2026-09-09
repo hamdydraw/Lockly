@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db/prisma.js';
+import { env } from '../env.js';
 import { requireAuth } from '../middleware/auth.js';
 import { HttpError } from '../middleware/error.js';
 import { requireUnlocked } from '../middleware/unlock.js';
@@ -29,6 +30,10 @@ const createSchema = z.object({
 
 const updateSchema = createSchema.partial();
 
+// SQLite LIKE is case-insensitive by default; Postgres `contains` is not. Opt in there so
+// search behaves the same on both. Spread (not a literal) keeps the SQLite client types happy.
+const ci = env.DATABASE_URL.startsWith('file:') ? {} : ({ mode: 'insensitive' } as const);
+
 /** Non-secret fields returned in list views. */
 function toMeta(item: {
   id: string;
@@ -55,9 +60,9 @@ itemsRouter.get('/', async (req, res) => {
       ...(q
         ? {
             OR: [
-              { title: { contains: q } },
-              { username: { contains: q } },
-              { url: { contains: q } },
+              { title: { contains: q, ...ci } },
+              { username: { contains: q, ...ci } },
+              { url: { contains: q, ...ci } },
             ],
           }
         : {}),

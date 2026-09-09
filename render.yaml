@@ -1,0 +1,28 @@
+# Render Blueprint — deploys Lockly as ONE free web service (API + built SPA).
+# Data lives in a free Neon Postgres database (DATABASE_URL), files included, so
+# nothing depends on the instance's disk. Step-by-step guide: DEPLOY.md
+services:
+  - type: web
+    name: lockly
+    runtime: node
+    plan: free
+    # Pick the Render region closest to your Neon project (see DEPLOY.md step 1).
+    region: frankfurt
+    # NODE_ENV=production makes `npm ci` skip devDependencies (tsc, vite, tailwind),
+    # which the build needs — hence --include=dev.
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Paste Neon's DIRECT connection string (pooled connection switched OFF).
+      - key: DATABASE_URL
+        sync: false
+      # Random 256-bit base64 values — exactly the format the server expects.
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATA_ENCRYPTION_KEY
+        generateValue: true
+      - key: BLOB_STORAGE
+        value: db
