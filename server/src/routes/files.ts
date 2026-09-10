@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { Router } from 'express';
 import multer from 'multer';
+import { z } from 'zod';
 import { prisma } from '../db/prisma.js';
 import { requireAuth } from '../middleware/auth.js';
 import { HttpError } from '../middleware/error.js';
@@ -20,9 +21,30 @@ const upload = multer({
 
 filesRouter.use(requireAuth, requireUnlocked);
 
+// Folder names are plain labels (one level). Empty/whitespace means "no folder".
+const folderSchema = z
+  .string()
+  .trim()
+  .max(100)
+  .transform((v) => (v === '' ? null : v))
+  .nullable()
+  .optional();
+
+const FILE_META_SELECT = {
+  id: true,
+  filename: true,
+  folder: true,
+  mimeType: true,
+  sizeBytes: true,
+  createdAt: true,
+} as const;
+
 /** POST /files — upload one file (field name "file"); stored encrypted at rest. */
 filesRouter.post('/', upload.single('file'), async (req, res) => {
   if (!req.file) throw new HttpError(400, 'No file uploaded (use form field "file")');
+
+  // multer parses text fields alongside the file; folder is optional.
+  const folder = folderSchema.parse(typeof req.body?.folder === 'string' ? req.body.folder : undefined) ?? null;
 
   const id = crypto.randomUUID();
   const sealed = seal(req.file.buffer, req.dataKey!);
@@ -33,13 +55,14 @@ filesRouter.post('/', upload.single('file'), async (req, res) => {
       id,
       userId: req.userId!,
       filename: req.file.originalname,
+      folder,
       mimeType: req.file.mimetype || 'application/octet-stream',
       sizeBytes: req.file.size,
       storagePath: id,
       iv: sealed.iv,
       authTag: sealed.authTag,
     },
-    select: { id: true, filename: true, sizeBytes: true },
+    select: FILE_META_SELECT,
   });
   await audit(req, req.userId!, 'file_upload', record.id);
   res.status(201).json(record);
@@ -50,15 +73,27 @@ filesRouter.get('/', async (req, res) => {
   const files = await prisma.storedFile.findMany({
     where: { userId: req.userId! },
     orderBy: { createdAt: 'desc' },
-    select: {
-      id: true,
-      filename: true,
-      mimeType: true,
-      sizeBytes: true,
-      createdAt: true,
-    },
+    select: FILE_META_SELECT,
   });
   res.json(files);
+});
+
+/** PATCH /files/:id — move a file to a folder (null/empty clears it). */
+filesRouter.patch('/:id', async (req, res) => {
+  const body = z.object({ folder: folderSchema }).parse(req.body);
+  const file = await prisma.storedFile.findFirst({
+    where: { id: req.params.id, userId: req.userId! },
+    select: { id: true },
+  });
+  if (!file) throw new HttpError(404, 'File not found');
+
+  const updated = await prisma.storedFile.update({
+    where: { id: file.id },
+    data: { folder: body.folder ?? null },
+    select: FILE_META_SELECT,
+  });
+  await audit(req, req.userId!, 'file_move', file.id);
+  res.json(updated);
 });
 
 /** GET /files/:id/download — decrypt and stream the original bytes. */

@@ -120,9 +120,10 @@ export const api = {
 
   // ---- files ----
   listFiles: () => request<FileMeta[]>('/files'),
-  uploadFile: async (file: File) => {
+  uploadFile: async (file: File, folder?: string | null) => {
     const form = new FormData();
     form.append('file', file);
+    if (folder) form.append('folder', folder);
     const res = await fetch(`${base()}/files`, {
       method: 'POST',
       credentials: 'include',
@@ -144,4 +145,7 @@ export const api = {
     await saveBlob(await res.blob(), filename);
   },
   deleteFile: (id: string) => request(`/files/${id}`, { method: 'DELETE' }),
+  /** Move a file to a folder; null clears it. */
+  moveFile: (id: string, folder: string | null) =>
+    request<FileMeta>(`/files/${id}`, { method: 'PATCH', body: JSON.stringify({ folder }) }),
 };

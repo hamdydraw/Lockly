@@ -64,6 +64,8 @@ model StoredFile {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   filename    String
+  // Optional one-level grouping, same model as VaultItem.folder (plaintext, searchable).
+  folder      String?
   mimeType    String
   sizeBytes   Int
   storagePath String
@@ -73,6 +75,7 @@ model StoredFile {
   createdAt   DateTime @default(now())
 
   @@index([userId])
+  @@index([userId, folder])
 }
 
 // Encrypted file bytes, when BLOB_STORAGE=db (hosts without a persistent disk, e.g. Render

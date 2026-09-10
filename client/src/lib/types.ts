@@ -27,6 +27,7 @@ export interface ItemInput {
 export interface FileMeta {
   id: string;
   filename: string;
+  folder: string | null;
   mimeType: string;
   sizeBytes: number;
   createdAt: string;
