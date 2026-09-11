@@ -144,6 +144,15 @@ export const api = {
     if (!res.ok) throw new ApiError(res.status, 'Download failed');
     await saveBlob(await res.blob(), filename);
   },
+  /** Decrypted bytes for the in-app viewer; the caller decides how to render them. */
+  fetchFileBlob: async (id: string) => {
+    const res = await fetch(`${base()}/files/${id}/content`, {
+      credentials: 'include',
+      headers: authHeaders(),
+    });
+    if (!res.ok) throw new ApiError(res.status, 'Could not load file');
+    return res.blob();
+  },
   deleteFile: (id: string) => request(`/files/${id}`, { method: 'DELETE' }),
   /** Move a file to a folder; null clears it. */
   moveFile: (id: string, folder: string | null) =>

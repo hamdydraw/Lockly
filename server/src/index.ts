@@ -27,7 +27,11 @@ app.use(
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-        imgSrc: ["'self'", 'data:'],
+        // blob: lets the in-app file preview render decrypted images, PDFs and
+        // media from memory without ever giving them a fetchable URL.
+        imgSrc: ["'self'", 'data:', 'blob:'],
+        mediaSrc: ["'self'", 'blob:'],
+        frameSrc: ["'self'", 'blob:'],
         connectSrc: ["'self'"],
         objectSrc: ["'none'"],
       },

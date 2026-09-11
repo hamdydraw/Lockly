@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { Router } from 'express';
+import { Router, type Request, type Response } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
 import { prisma } from '../db/prisma.js';
@@ -96,8 +96,16 @@ filesRouter.patch('/:id', async (req, res) => {
   res.json(updated);
 });
 
-/** GET /files/:id/download — decrypt and stream the original bytes. */
-filesRouter.get('/:id/download', async (req, res) => {
+/**
+ * Decrypts a file the caller owns and sends the original bytes. `disposition`
+ * distinguishes a download (saved to disk) from a preview (rendered in-app);
+ * both are audited under their own action so the log tells them apart.
+ */
+async function sendPlaintext(
+  req: Request,
+  res: Response,
+  disposition: 'attachment' | 'inline',
+) {
   const file = await prisma.storedFile.findFirst({
     where: { id: req.params.id, userId: req.userId! },
   });
@@ -113,14 +121,24 @@ filesRouter.get('/:id/download', async (req, res) => {
     req.dataKey!,
   );
 
-  await audit(req, req.userId!, 'file_download', file.id);
+  await audit(req, req.userId!, disposition === 'inline' ? 'file_preview' : 'file_download', file.id);
   res.setHeader('Content-Type', file.mimeType);
+  // The client renders previews itself from the response body; declaring the
+  // MIME type as authoritative keeps browsers from sniffing it into something else.
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Cache-Control', 'no-store');
   res.setHeader(
     'Content-Disposition',
-    `attachment; filename="${encodeURIComponent(file.filename)}"`,
+    `${disposition}; filename="${encodeURIComponent(file.filename)}"`,
   );
   res.send(plaintext);
-});
+}
+
+/** GET /files/:id/download — decrypt and stream the original bytes as an attachment. */
+filesRouter.get('/:id/download', (req, res) => sendPlaintext(req, res, 'attachment'));
+
+/** GET /files/:id/content — decrypt and stream the original bytes for in-app preview. */
+filesRouter.get('/:id/content', (req, res) => sendPlaintext(req, res, 'inline'));
 
 /** DELETE /files/:id */
 filesRouter.delete('/:id', async (req, res) => {

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Download,
+  Eye,
   File as FileIcon,
   FileArchive,
   FileImage,
@@ -16,11 +17,13 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
+import { FilePreview } from '../components/FilePreview';
 import { GlassButton } from '../components/ui/GlassButton';
 import { GlassInput } from '../components/ui/GlassInput';
 import { GlassModal } from '../components/ui/GlassModal';
 import { useToast } from '../components/ui/Toast';
 import { api, ApiError } from '../lib/api';
+import { previewKind } from '../lib/preview';
 import type { FileMeta } from '../lib/types';
 
 /** Must match the multer limit in server/src/routes/files.ts. */
@@ -115,6 +118,7 @@ export function FilesPage() {
   const [newFolderName, setNewFolderName] = useState('');
   const [moving, setMoving] = useState<FileMeta | null>(null);
   const [moveTarget, setMoveTarget] = useState('');
+  const [previewing, setPreviewing] = useState<FileMeta | null>(null);
 
   const { data: files, isLoading } = useQuery({
     queryKey: ['files'],
@@ -320,6 +324,7 @@ export function FilesPage() {
         <div className="space-y-1.5">
           {visible.map((f) => {
             const { label, Icon } = fileKind(f.filename);
+            const canPreview = previewKind(f.filename, f.mimeType) !== null;
             return (
               <div
                 key={f.id}
@@ -331,7 +336,17 @@ export function FilesPage() {
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-medium text-ink">{f.filename}</p>
+                    {canPreview ? (
+                      <button
+                        onClick={() => setPreviewing(f)}
+                        className="min-w-0 truncate text-left text-sm font-medium text-ink hover:text-cyan-glow focus-visible:outline-none focus-visible:underline"
+                        title="Preview"
+                      >
+                        {f.filename}
+                      </button>
+                    ) : (
+                      <p className="truncate text-sm font-medium text-ink">{f.filename}</p>
+                    )}
                     <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-cyan-glow/20 bg-cyan-glow/[0.08] px-1.5 py-0.5 text-[11px] font-medium text-cyan-glow">
                       <ShieldCheck className="h-3 w-3" strokeWidth={2} />
                       Encrypted
@@ -351,6 +366,16 @@ export function FilesPage() {
                 </div>
 
                 <div className="flex shrink-0 items-center gap-1 opacity-80 transition-opacity group-hover:opacity-100">
+                  {canPreview && (
+                    <button
+                      onClick={() => setPreviewing(f)}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors duration-150 hover:bg-white/[0.05] hover:text-cyan-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/40"
+                      aria-label="Preview"
+                      title="Preview"
+                    >
+                      <Eye className="h-[18px] w-[18px]" strokeWidth={1.75} />
+                    </button>
+                  )}
                   <button
                     onClick={() => openMove(f)}
                     className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors duration-150 hover:bg-white/[0.05] hover:text-violet-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-glow/40"
@@ -381,6 +406,9 @@ export function FilesPage() {
           })}
         </div>
       )}
+
+      {/* In-app viewer */}
+      <FilePreview file={previewing} onClose={() => setPreviewing(null)} />
 
       {/* New folder */}
       <GlassModal open={newFolderOpen} onClose={() => setNewFolderOpen(false)} title="New folder">
