@@ -120,21 +120,47 @@ export const api = {
 
   // ---- files ----
   listFiles: () => request<FileMeta[]>('/files'),
-  uploadFile: async (file: File, folder?: string | null) => {
+  /**
+   * XHR rather than fetch: it is the only transport that reports upload
+   * progress, which the Files page shows per file. `onProgress` receives a
+   * 0–1 fraction of bytes sent, then is called once more with 1 while the
+   * server is still encrypting and storing them.
+   */
+  uploadFile: (file: File, folder?: string | null, onProgress?: (fraction: number) => void) => {
     const form = new FormData();
     form.append('file', file);
     if (folder) form.append('folder', folder);
-    const res = await fetch(`${base()}/files`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: authHeaders(), // no Content-Type: the browser sets the multipart boundary
-      body: form,
+
+    return new Promise<FileMeta>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${base()}/files`);
+      xhr.withCredentials = true;
+      // No Content-Type: the browser sets the multipart boundary.
+      for (const [k, v] of Object.entries(authHeaders())) xhr.setRequestHeader(k, v);
+
+      if (onProgress) {
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) onProgress(e.total === 0 ? 1 : e.loaded / e.total);
+        };
+        xhr.upload.onload = () => onProgress(1);
+      }
+
+      xhr.onload = () => {
+        let body: { error?: string } & Partial<FileMeta> = {};
+        try {
+          body = JSON.parse(xhr.responseText);
+        } catch {
+          /* a non-JSON body falls through to the generic message below */
+        }
+        if (xhr.status >= 200 && xhr.status < 300) resolve(body as FileMeta);
+        else reject(new ApiError(xhr.status, body.error ?? 'Upload failed'));
+      };
+      xhr.onerror = () => reject(new ApiError(0, 'Upload failed: could not reach the server'));
+      xhr.onabort = () => reject(new ApiError(0, 'Upload cancelled'));
+      xhr.ontimeout = () => reject(new ApiError(0, 'Upload timed out'));
+
+      xhr.send(form);
     });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new ApiError(res.status, body.error ?? 'Upload failed');
-    }
-    return res.json() as Promise<FileMeta>;
   },
   downloadFile: async (id: string, filename: string) => {
     const res = await fetch(`${base()}/files/${id}/download`, {

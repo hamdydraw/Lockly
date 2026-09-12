@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  AlertCircle,
   Download,
   Eye,
   File as FileIcon,
@@ -11,9 +12,11 @@ import {
   FolderInput,
   FolderPlus,
   Files,
+  Loader2,
   ShieldCheck,
   Trash2,
   Upload,
+  X,
   type LucideIcon,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
@@ -104,6 +107,80 @@ function FolderChip({
   );
 }
 
+/** One in-flight (or failed) upload, tracked only for the duration of the page. */
+interface Upload {
+  id: string;
+  name: string;
+  size: number;
+  /** Fraction of bytes sent, 0–1. */
+  progress: number;
+  /** Bytes are all sent; the server is sealing and storing them. */
+  encrypting?: boolean;
+  error?: string;
+}
+
+/** Progress row shown above the file list while an upload is in flight. */
+function UploadRow({ upload, onDismiss }: { upload: Upload; onDismiss: () => void }) {
+  const failed = upload.error !== undefined;
+  const percent = Math.round(upload.progress * 100);
+
+  return (
+    <div className="flex items-center gap-3.5 rounded-xl border border-line bg-card px-3.5 py-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line bg-white/[0.02]">
+        {failed ? (
+          <AlertCircle className="h-5 w-5 text-red-400" strokeWidth={1.75} />
+        ) : (
+          <Loader2 className="h-5 w-5 animate-spin text-cyan-glow" strokeWidth={1.75} />
+        )}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p dir="auto" className="truncate text-sm font-medium text-ink">
+          {upload.name}
+        </p>
+        <p className="mt-0.5 truncate text-[13px] text-muted">
+          {failed
+            ? upload.error
+            : upload.encrypting
+              ? `Encrypting on the server… · ${humanSize(upload.size)}`
+              : `Uploading ${percent}% · ${humanSize(upload.size)}`}
+        </p>
+        {!failed && (
+          <div
+            className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/[0.06]"
+            role="progressbar"
+            aria-label={`Uploading ${upload.name}`}
+            aria-valuenow={percent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <div
+              className={
+                'h-full rounded-full bg-cyan-glow transition-[width] duration-200 ease-out ' +
+                // The server-side encrypt has no progress to report, so the full
+                // bar pulses instead of sitting still at 100%.
+                (upload.encrypting ? 'animate-pulse' : '')
+              }
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+        )}
+      </div>
+
+      {failed && (
+        <button
+          onClick={onDismiss}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors duration-150 hover:bg-white/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/40"
+          aria-label="Dismiss"
+          title="Dismiss"
+        >
+          <X className="h-4 w-4" strokeWidth={2} />
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function FilesPage() {
   const qc = useQueryClient();
   const toast = useToast();
@@ -119,6 +196,7 @@ export function FilesPage() {
   const [moving, setMoving] = useState<FileMeta | null>(null);
   const [moveTarget, setMoveTarget] = useState('');
   const [previewing, setPreviewing] = useState<FileMeta | null>(null);
+  const [uploads, setUploads] = useState<Upload[]>([]);
 
   const { data: files, isLoading } = useQuery({
     queryKey: ['files'],
@@ -146,15 +224,31 @@ export function FilesPage() {
     [visible],
   );
 
-  const upload = useMutation({
-    mutationFn: (file: File) => api.uploadFile(file, selected),
-    onSuccess: async () => {
+  /**
+   * Uploads run in parallel and each gets its own row above the list, so the
+   * user can see which file is still going. A failed row sticks around with its
+   * message until dismissed; a finished one disappears as the list refreshes.
+   */
+  async function startUpload(file: File, folder: string | null) {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const patch = (next: Partial<Upload>) =>
+      setUploads((prev) => prev.map((u) => (u.id === id ? { ...u, ...next } : u)));
+
+    setUploads((prev) => [...prev, { id, name: file.name, size: file.size, progress: 0 }]);
+    try {
+      await api.uploadFile(file, folder, (fraction) =>
+        // At 100% the bytes are sent but the server is still encrypting them.
+        patch(fraction >= 1 ? { progress: 1, encrypting: true } : { progress: fraction }),
+      );
+      setUploads((prev) => prev.filter((u) => u.id !== id));
       await qc.invalidateQueries({ queryKey: ['files'] });
-      toast('File uploaded & encrypted', 'success');
-    },
-    onError: (err) =>
-      toast(err instanceof ApiError ? err.message : 'Upload failed', 'error'),
-  });
+      toast(`${file.name} uploaded & encrypted`, 'success');
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Upload failed';
+      patch({ error: message, encrypting: false });
+      toast(message, 'error');
+    }
+  }
 
   const remove = useMutation({
     mutationFn: (id: string) => api.deleteFile(id),
@@ -176,12 +270,14 @@ export function FilesPage() {
 
   function handleFiles(list: FileList | null) {
     if (!list) return;
+    // The folder is captured now, so switching folders mid-upload cannot move it.
+    const folder = selected;
     for (const f of Array.from(list)) {
       if (f.size > MAX_FILE_MB * 1024 * 1024) {
         toast(`${f.name} is larger than ${MAX_FILE_MB} MB`, 'error');
         continue;
       }
-      upload.mutate(f);
+      void startUpload(f, folder);
     }
   }
 
@@ -207,6 +303,7 @@ export function FilesPage() {
     setMoving(f);
   }
 
+  const activeUploads = uploads.filter((u) => u.error === undefined).length;
   const count = visible.length;
   const totalBytes = visible.reduce((sum, f) => sum + f.sizeBytes, 0);
   const subtitle = `${count} ${count === 1 ? 'file' : 'files'} · ${humanSize(totalBytes)}`;
@@ -227,8 +324,17 @@ export function FilesPage() {
           onClick={() => inputRef.current?.click()}
           className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-cyan-glow px-3.5 py-2 text-sm font-medium text-[#0B0D17] transition-colors duration-150 hover:bg-[#7cebff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
         >
-          <Upload className="h-4 w-4" strokeWidth={2} />
-          Upload files
+          {activeUploads > 0 ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
+              Uploading {activeUploads}…
+            </>
+          ) : (
+            <>
+              <Upload className="h-4 w-4" strokeWidth={2} />
+              Upload files
+            </>
+          )}
         </button>
       </header>
 
@@ -306,10 +412,23 @@ export function FilesPage() {
         />
       </div>
 
+      {/* In-flight uploads */}
+      {uploads.length > 0 && (
+        <div className="mb-1.5 space-y-1.5">
+          {uploads.map((u) => (
+            <UploadRow
+              key={u.id}
+              upload={u}
+              onDismiss={() => setUploads((prev) => prev.filter((x) => x.id !== u.id))}
+            />
+          ))}
+        </div>
+      )}
+
       {/* File list */}
       {isLoading ? (
         <p className="text-sm text-muted">Loading…</p>
-      ) : visible.length === 0 ? (
+      ) : visible.length === 0 && uploads.length === 0 ? (
         <div className="rounded-xl border border-line bg-card px-6 py-12 text-center">
           <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-white/[0.02]">
             {selected ? (
