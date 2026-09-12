@@ -144,6 +144,40 @@ filesRouter.get('/:id/download', (req, res) => sendPlaintext(req, res, 'attachme
 /** GET /files/:id/content — decrypt and stream the original bytes for in-app preview. */
 filesRouter.get('/:id/content', (req, res) => sendPlaintext(req, res, 'inline'));
 
+/**
+ * POST /files/folders/delete — remove a folder. Folders are labels rather than
+ * records, so this either deletes every file carrying the label or just clears
+ * the label and keeps the files. Sent as a POST body because folder names are
+ * free text and would need escaping in a path segment.
+ */
+filesRouter.post('/folders/delete', async (req, res) => {
+  const { folder, deleteFiles } = z
+    .object({ folder: z.string().trim().min(1).max(100), deleteFiles: z.boolean() })
+    .parse(req.body);
+
+  const files = await prisma.storedFile.findMany({
+    where: { userId: req.userId!, folder },
+    select: { id: true, storagePath: true },
+  });
+
+  if (deleteFiles) {
+    for (const file of files) {
+      await deleteBlob(file.storagePath);
+      await prisma.storedFile.delete({ where: { id: file.id } });
+      await audit(req, req.userId!, 'file_delete', file.id);
+    }
+  } else if (files.length > 0) {
+    await prisma.storedFile.updateMany({
+      where: { userId: req.userId!, folder },
+      data: { folder: null },
+    });
+    for (const file of files) await audit(req, req.userId!, 'file_move', file.id);
+  }
+
+  await audit(req, req.userId!, deleteFiles ? 'folder_delete' : 'folder_dissolve');
+  res.json({ ok: true, count: files.length });
+});
+
 /** DELETE /files/:id */
 filesRouter.delete('/:id', async (req, res) => {
   const file = await prisma.storedFile.findFirst({

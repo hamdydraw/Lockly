@@ -183,4 +183,13 @@ export const api = {
   /** Move a file to a folder; null clears it. */
   moveFile: (id: string, folder: string | null) =>
     request<FileMeta>(`/files/${id}`, { method: 'PATCH', body: JSON.stringify({ folder }) }),
+  /**
+   * Delete a folder. `deleteFiles` chooses between destroying the files it
+   * holds and keeping them, unfiled. Resolves with how many files were touched.
+   */
+  deleteFolder: (folder: string, deleteFiles: boolean) =>
+    request<{ ok: true; count: number }>('/files/folders/delete', {
+      method: 'POST',
+      body: JSON.stringify({ folder, deleteFiles }),
+    }),
 };

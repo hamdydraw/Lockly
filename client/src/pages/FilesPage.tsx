@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { FilePreview } from '../components/FilePreview';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { GlassButton } from '../components/ui/GlassButton';
 import { GlassInput } from '../components/ui/GlassInput';
 import { GlassModal } from '../components/ui/GlassModal';
@@ -72,38 +73,66 @@ function fileKind(name: string): { label: string; Icon: LucideIcon } {
   }
 }
 
-/** Folder chip in the filter row. */
+/**
+ * Folder chip in the filter row. With `onDelete` it becomes a two-control chip
+ * (select / delete) rather than one button, since a button cannot nest a button.
+ */
 function FolderChip({
   active,
   onClick,
+  onDelete,
   icon: Icon,
   children,
   count,
 }: {
   active: boolean;
   onClick: () => void;
+  onDelete?: () => void;
   icon: LucideIcon;
   children: string;
   count?: number;
 }) {
   return (
-    <button
-      onClick={onClick}
+    <div
       className={
-        'inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/40 ' +
+        'group inline-flex shrink-0 items-center rounded-lg border text-[13px] font-medium transition-colors duration-150 ' +
         (active
           ? 'border-violet-glow/40 bg-violet-glow/[0.12] text-ink'
           : 'border-line bg-card text-muted hover:bg-card-hover hover:text-ink')
       }
     >
-      <Icon className={active ? 'h-3.5 w-3.5 text-violet-glow' : 'h-3.5 w-3.5'} strokeWidth={2} />
-      <span className="max-w-[160px] truncate">{children}</span>
-      {count !== undefined && (
-        <span className={active ? 'text-[11px] text-violet-glow' : 'text-[11px] text-muted/70'}>
-          {count}
+      <button
+        onClick={onClick}
+        className={
+          'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/40 ' +
+          (onDelete ? 'pr-1.5' : '')
+        }
+      >
+        <Icon className={active ? 'h-3.5 w-3.5 text-violet-glow' : 'h-3.5 w-3.5'} strokeWidth={2} />
+        <span dir="auto" className="max-w-[160px] truncate">
+          {children}
         </span>
+        {count !== undefined && (
+          <span className={active ? 'text-[11px] text-violet-glow' : 'text-[11px] text-muted/70'}>
+            {count}
+          </span>
+        )}
+      </button>
+      {onDelete && (
+        <button
+          onClick={onDelete}
+          // Always reachable by keyboard; revealed on hover or while selected.
+          className={
+            'mr-1 flex h-6 w-6 items-center justify-center rounded-md text-muted transition hover:bg-danger/10 hover:text-danger focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40 group-hover:opacity-100 ' +
+            (active ? 'opacity-100' : 'opacity-0')
+          }
+          aria-label={`Delete folder ${children}`}
+          title="Delete folder"
+        >
+          <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+        </button>
       )}
-    </button>
+    </div>
   );
 }
 
@@ -197,6 +226,8 @@ export function FilesPage() {
   const [moveTarget, setMoveTarget] = useState('');
   const [previewing, setPreviewing] = useState<FileMeta | null>(null);
   const [uploads, setUploads] = useState<Upload[]>([]);
+  const [deleting, setDeleting] = useState<FileMeta | null>(null);
+  const [deletingFolder, setDeletingFolder] = useState<string | null>(null);
 
   const { data: files, isLoading } = useQuery({
     queryKey: ['files'],
@@ -255,7 +286,30 @@ export function FilesPage() {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ['files'] });
       toast('File deleted', 'success');
+      setDeleting(null);
     },
+    onError: (err) => toast(err instanceof ApiError ? err.message : 'Delete failed', 'error'),
+  });
+
+  // `deleteFiles` distinguishes "delete the folder and everything in it" from
+  // "drop the label and leave the files unfiled".
+  const removeFolder = useMutation({
+    mutationFn: ({ folder, deleteFiles }: { folder: string; deleteFiles: boolean }) =>
+      api.deleteFolder(folder, deleteFiles),
+    onSuccess: async (res, vars) => {
+      await qc.invalidateQueries({ queryKey: ['files'] });
+      setExtraFolders((prev) => prev.filter((n) => n !== vars.folder));
+      if (selected === vars.folder) setSelected(null);
+      toast(
+        vars.deleteFiles
+          ? `Deleted “${vars.folder}” and ${res.count} ${res.count === 1 ? 'file' : 'files'}`
+          : `Deleted “${vars.folder}”; ${res.count} ${res.count === 1 ? 'file is' : 'files are'} now unfiled`,
+        'success',
+      );
+      setDeletingFolder(null);
+    },
+    onError: (err) =>
+      toast(err instanceof ApiError ? err.message : 'Could not delete the folder', 'error'),
   });
 
   const move = useMutation({
@@ -304,6 +358,7 @@ export function FilesPage() {
   }
 
   const activeUploads = uploads.filter((u) => u.error === undefined).length;
+  const deletingFolderCount = folders.find((f) => f.name === deletingFolder)?.count ?? 0;
   const count = visible.length;
   const totalBytes = visible.reduce((sum, f) => sum + f.sizeBytes, 0);
   const subtitle = `${count} ${count === 1 ? 'file' : 'files'} · ${humanSize(totalBytes)}`;
@@ -353,6 +408,7 @@ export function FilesPage() {
             key={f.name}
             active={selected === f.name}
             onClick={() => setSelected(f.name)}
+            onDelete={() => setDeletingFolder(f.name)}
             icon={Folder}
             count={f.count}
           >
@@ -523,7 +579,7 @@ export function FilesPage() {
                     <Download className="h-[18px] w-[18px]" strokeWidth={1.75} />
                   </button>
                   <button
-                    onClick={() => remove.mutate(f.id)}
+                    onClick={() => setDeleting(f)}
                     className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors duration-150 hover:bg-danger/10 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40"
                     aria-label="Delete"
                     title="Delete"
@@ -543,6 +599,57 @@ export function FilesPage() {
         onClose={() => setPreviewing(null)}
         siblings={previewable}
         onNavigate={setPreviewing}
+      />
+
+      {/* Delete a file */}
+      <ConfirmModal
+        open={deleting !== null}
+        onClose={() => setDeleting(null)}
+        title="Delete file?"
+        body={
+          <>
+            <span dir="auto" className="font-medium text-ink">
+              {deleting?.filename}
+            </span>{' '}
+            ({deleting ? humanSize(deleting.sizeBytes) : ''}) will be permanently deleted from the
+            server. This cannot be undone.
+          </>
+        }
+        confirm={{
+          label: 'Delete file',
+          busy: remove.isPending,
+          onClick: () => deleting && remove.mutate(deleting.id),
+        }}
+      />
+
+      {/* Delete a folder */}
+      <ConfirmModal
+        open={deletingFolder !== null}
+        onClose={() => setDeletingFolder(null)}
+        title="Delete folder?"
+        body={
+          <>
+            “
+            <span dir="auto" className="font-medium text-ink">
+              {deletingFolder}
+            </span>
+            ” holds {deletingFolderCount} {deletingFolderCount === 1 ? 'file' : 'files'}. Delete
+            them along with the folder, or keep them — kept files stay encrypted and move to{' '}
+            <span className="font-medium text-ink">All files</span>.
+          </>
+        }
+        secondary={{
+          label: 'Keep the files',
+          busy: removeFolder.isPending && removeFolder.variables?.deleteFiles === false,
+          onClick: () =>
+            deletingFolder && removeFolder.mutate({ folder: deletingFolder, deleteFiles: false }),
+        }}
+        confirm={{
+          label: `Delete folder & ${deletingFolderCount} ${deletingFolderCount === 1 ? 'file' : 'files'}`,
+          busy: removeFolder.isPending && removeFolder.variables?.deleteFiles === true,
+          onClick: () =>
+            deletingFolder && removeFolder.mutate({ folder: deletingFolder, deleteFiles: true }),
+        }}
       />
 
       {/* New folder */}
