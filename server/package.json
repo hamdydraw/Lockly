@@ -15,6 +15,7 @@
     "prisma:studio": "node scripts/prisma.mjs studio",
     "prisma:pg-init": "node scripts/prisma.mjs pg-init",
     "prisma:pg-migration": "node scripts/prisma.mjs pg-migration",
+    "repair:filenames": "tsx src/scripts/repairFilenames.ts",
     "test": "vitest run"
   },
   "dependencies": {

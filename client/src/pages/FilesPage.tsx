@@ -139,6 +139,13 @@ export function FilesPage() {
     [files, selected],
   );
 
+  // What the viewer can page through: the previewable files of the folder on
+  // screen, in list order, so next/previous matches what the user sees behind it.
+  const previewable = useMemo(
+    () => visible.filter((f) => previewKind(f.filename, f.mimeType) !== null),
+    [visible],
+  );
+
   const upload = useMutation({
     mutationFn: (file: File) => api.uploadFile(file, selected),
     onSuccess: async () => {
@@ -337,7 +344,9 @@ export function FilesPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     {canPreview ? (
+                      // dir="auto" so an Arabic or Hebrew name reads right-to-left.
                       <button
+                        dir="auto"
                         onClick={() => setPreviewing(f)}
                         className="min-w-0 truncate text-left text-sm font-medium text-ink hover:text-cyan-glow focus-visible:outline-none focus-visible:underline"
                         title="Preview"
@@ -345,7 +354,9 @@ export function FilesPage() {
                         {f.filename}
                       </button>
                     ) : (
-                      <p className="truncate text-sm font-medium text-ink">{f.filename}</p>
+                      <p dir="auto" className="truncate text-sm font-medium text-ink">
+                        {f.filename}
+                      </p>
                     )}
                     <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-cyan-glow/20 bg-cyan-glow/[0.08] px-1.5 py-0.5 text-[11px] font-medium text-cyan-glow">
                       <ShieldCheck className="h-3 w-3" strokeWidth={2} />
@@ -408,7 +419,12 @@ export function FilesPage() {
       )}
 
       {/* In-app viewer */}
-      <FilePreview file={previewing} onClose={() => setPreviewing(null)} />
+      <FilePreview
+        file={previewing}
+        onClose={() => setPreviewing(null)}
+        siblings={previewable}
+        onNavigate={setPreviewing}
+      />
 
       {/* New folder */}
       <GlassModal open={newFolderOpen} onClose={() => setNewFolderOpen(false)} title="New folder">

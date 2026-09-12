@@ -1,6 +1,15 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertCircle, Download, ExternalLink, Loader2, X, type LucideIcon } from 'lucide-react';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  ExternalLink,
+  Loader2,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api } from '../lib/api';
 import { isNative } from '../lib/config';
 import { saveBlob } from '../lib/download';
@@ -27,6 +36,13 @@ function humanSize(bytes: number): string {
 interface FilePreviewProps {
   file: FileMeta | null;
   onClose: () => void;
+  /**
+   * The files the viewer can page through — normally the previewable files of
+   * the folder currently on screen, in the order they are listed. Omit it (or
+   * pass a single-entry list) for a viewer with no next/previous.
+   */
+  siblings?: FileMeta[];
+  onNavigate?: (file: FileMeta) => void;
 }
 
 /**
@@ -35,12 +51,26 @@ interface FilePreviewProps {
  * blob: URL is used only for kinds the browser draws natively (image, PDF,
  * media) and is revoked as soon as the viewer closes.
  */
-export function FilePreview({ file, onClose }: FilePreviewProps) {
+export function FilePreview({ file, onClose, siblings, onNavigate }: FilePreviewProps) {
   const toast = useToast();
   const [blob, setBlob] = useState<Blob | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const kind = file ? previewKind(file.filename, file.mimeType) : null;
+
+  // Paging wraps around, so the last item's "next" returns to the first.
+  const list = siblings && siblings.length > 1 ? siblings : null;
+  const index = list && file ? list.findIndex((f) => f.id === file.id) : -1;
+  const canPage = list !== null && index !== -1 && onNavigate !== undefined;
+
+  const step = useCallback(
+    (delta: number) => {
+      if (!canPage || !list) return;
+      const next = list[(index + delta + list.length) % list.length]!;
+      if (next.id !== file?.id) onNavigate!(next);
+    },
+    [canPage, list, index, file?.id, onNavigate],
+  );
 
   // Fetch on open; discard on close or when a different file is chosen.
   useEffect(() => {
@@ -76,7 +106,12 @@ export function FilePreview({ file, onClose }: FilePreviewProps) {
   useEffect(() => {
     if (!file) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') return onClose();
+      // Arrow keys page only for kinds drawn whole; text and sheet panes need
+      // the arrows for scrolling, so those page from the buttons alone.
+      if (!kind || !needsObjectUrl(kind)) return;
+      if (e.key === 'ArrowRight') step(1);
+      else if (e.key === 'ArrowLeft') step(-1);
     };
     window.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
@@ -85,7 +120,7 @@ export function FilePreview({ file, onClose }: FilePreviewProps) {
       window.removeEventListener('keydown', onKey);
       document.body.style.overflow = prev;
     };
-  }, [file, onClose]);
+  }, [file, onClose, kind, step]);
 
   async function download() {
     if (!file) return;
@@ -114,8 +149,12 @@ export function FilePreview({ file, onClose }: FilePreviewProps) {
           {/* Header */}
           <div className="flex items-center gap-3 border-b border-line bg-sidebar px-4 py-3">
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-ink">{file.filename}</p>
+              {/* dir="auto" so an Arabic or Hebrew name reads right-to-left. */}
+              <p dir="auto" className="truncate text-sm font-medium text-ink">
+                {file.filename}
+              </p>
               <p className="truncate text-[12px] text-muted">
+                {canPage && `${index + 1} of ${list!.length} · `}
                 {humanSize(file.sizeBytes)} · Decrypted in this tab only
               </p>
             </div>
@@ -159,10 +198,38 @@ export function FilePreview({ file, onClose }: FilePreviewProps) {
                 </div>
               )}
             </motion.div>
+
+            {canPage && (
+              <>
+                <PageButton side="left" onClick={() => step(-1)} />
+                <PageButton side="right" onClick={() => step(1)} />
+              </>
+            )}
           </div>
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+/** Edge-anchored arrow for stepping through the folder. */
+function PageButton({ side, onClick }: { side: 'left' | 'right'; onClick: () => void }) {
+  const Icon = side === 'left' ? ChevronLeft : ChevronRight;
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation(); // the backdrop behind it closes the viewer
+        onClick();
+      }}
+      className={
+        'absolute top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-black/50 text-muted backdrop-blur-sm transition-colors duration-150 hover:bg-black/70 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/40 ' +
+        (side === 'left' ? 'left-2 sm:left-4' : 'right-2 sm:right-4')
+      }
+      aria-label={side === 'left' ? 'Previous file' : 'Next file'}
+      title={side === 'left' ? 'Previous (←)' : 'Next (→)'}
+    >
+      <Icon className="h-6 w-6" strokeWidth={2} />
+    </button>
   );
 }
 

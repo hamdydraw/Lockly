@@ -8,6 +8,7 @@ import { HttpError } from '../middleware/error.js';
 import { requireUnlocked } from '../middleware/unlock.js';
 import { audit } from '../services/audit.js';
 import { open, seal } from '../services/crypto.js';
+import { decodeUploadFilename } from '../services/filename.js';
 import { deleteBlob, readBlob, writeBlob } from '../services/storage.js';
 
 export const filesRouter = Router();
@@ -54,7 +55,7 @@ filesRouter.post('/', upload.single('file'), async (req, res) => {
     data: {
       id,
       userId: req.userId!,
-      filename: req.file.originalname,
+      filename: decodeUploadFilename(req.file.originalname),
       folder,
       mimeType: req.file.mimetype || 'application/octet-stream',
       sizeBytes: req.file.size,
@@ -127,9 +128,12 @@ async function sendPlaintext(
   // MIME type as authoritative keeps browsers from sniffing it into something else.
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Cache-Control', 'no-store');
+  // RFC 6266/5987: an ASCII fallback plus a UTF-8 form, so non-Latin names
+  // (Arabic, CJK) reach the browser's save dialog intact instead of percent-escaped.
+  const asciiName = file.filename.replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, '_');
   res.setHeader(
     'Content-Disposition',
-    `${disposition}; filename="${encodeURIComponent(file.filename)}"`,
+    `${disposition}; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(file.filename)}`,
   );
   res.send(plaintext);
 }
