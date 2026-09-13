@@ -34,7 +34,7 @@ export default function App() {
     <>
       <AuroraBackground />
       {loading ? (
-        <div className="flex min-h-screen items-center justify-center text-muted">Loading…</div>
+        <div className="flex min-h-screen items-center justify-center text-fg-muted">Loading…</div>
       ) : !session ? (
         <AuthPage />
       ) : !session.unlocked ? (

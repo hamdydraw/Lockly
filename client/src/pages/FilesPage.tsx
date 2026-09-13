@@ -97,23 +97,23 @@ function FolderChip({
       className={
         'group inline-flex shrink-0 items-center rounded-lg border text-[13px] font-medium transition-colors duration-150 ' +
         (active
-          ? 'border-violet-glow/40 bg-violet-glow/[0.12] text-ink'
-          : 'border-line bg-card text-muted hover:bg-card-hover hover:text-ink')
+          ? 'border-accent-fg/40 bg-accent/10 text-fg'
+          : 'border-line bg-surface-2 text-fg-muted hover:bg-surface-3 hover:text-fg')
       }
     >
       <button
         onClick={onClick}
         className={
-          'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/40 ' +
+          'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/40 ' +
           (onDelete ? 'pr-1.5' : '')
         }
       >
-        <Icon className={active ? 'h-3.5 w-3.5 text-violet-glow' : 'h-3.5 w-3.5'} strokeWidth={2} />
+        <Icon className={active ? 'h-3.5 w-3.5 text-accent-fg' : 'h-3.5 w-3.5'} strokeWidth={2} />
         <span dir="auto" className="max-w-[160px] truncate">
           {children}
         </span>
         {count !== undefined && (
-          <span className={active ? 'text-[11px] text-violet-glow' : 'text-[11px] text-muted/70'}>
+          <span className={active ? 'text-[11px] text-accent-fg' : 'text-[11px] text-fg-subtle'}>
             {count}
           </span>
         )}
@@ -123,7 +123,7 @@ function FolderChip({
           onClick={onDelete}
           // Always reachable by keyboard; revealed on hover or while selected.
           className={
-            'mr-1 flex h-6 w-6 items-center justify-center rounded-md text-muted transition hover:bg-danger/10 hover:text-danger focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40 group-hover:opacity-100 ' +
+            'mr-1 flex h-6 w-6 items-center justify-center rounded-md text-fg-muted transition hover:bg-danger/10 hover:text-danger focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40 group-hover:opacity-100 ' +
             (active ? 'opacity-100' : 'opacity-0')
           }
           aria-label={`Delete folder ${children}`}
@@ -154,20 +154,20 @@ function UploadRow({ upload, onDismiss }: { upload: Upload; onDismiss: () => voi
   const percent = Math.round(upload.progress * 100);
 
   return (
-    <div className="flex items-center gap-3.5 rounded-xl border border-line bg-card px-3.5 py-3">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line bg-white/[0.02]">
+    <div className="flex items-center gap-3.5 rounded-xl border border-line bg-surface-2 px-3.5 py-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line bg-fg/[0.03]">
         {failed ? (
-          <AlertCircle className="h-5 w-5 text-red-400" strokeWidth={1.75} />
+          <AlertCircle className="h-5 w-5 text-danger" strokeWidth={1.75} />
         ) : (
-          <Loader2 className="h-5 w-5 animate-spin text-cyan-glow" strokeWidth={1.75} />
+          <Loader2 className="h-5 w-5 animate-spin text-secure" strokeWidth={1.75} />
         )}
       </div>
 
       <div className="min-w-0 flex-1">
-        <p dir="auto" className="truncate text-sm font-medium text-ink">
+        <p dir="auto" className="truncate text-sm font-medium text-fg">
           {upload.name}
         </p>
-        <p className="mt-0.5 truncate text-[13px] text-muted">
+        <p className="mt-0.5 truncate text-[13px] text-fg-muted">
           {failed
             ? upload.error
             : upload.encrypting
@@ -176,7 +176,7 @@ function UploadRow({ upload, onDismiss }: { upload: Upload; onDismiss: () => voi
         </p>
         {!failed && (
           <div
-            className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/[0.06]"
+            className="mt-2 h-1 w-full overflow-hidden rounded-full bg-fg/[0.06]"
             role="progressbar"
             aria-label={`Uploading ${upload.name}`}
             aria-valuenow={percent}
@@ -185,7 +185,7 @@ function UploadRow({ upload, onDismiss }: { upload: Upload; onDismiss: () => voi
           >
             <div
               className={
-                'h-full rounded-full bg-cyan-glow transition-[width] duration-200 ease-out ' +
+                'h-full rounded-full bg-secure transition-[width] duration-200 ease-out ' +
                 // The server-side encrypt has no progress to report, so the full
                 // bar pulses instead of sitting still at 100%.
                 (upload.encrypting ? 'animate-pulse' : '')
@@ -199,7 +199,7 @@ function UploadRow({ upload, onDismiss }: { upload: Upload; onDismiss: () => voi
       {failed && (
         <button
           onClick={onDismiss}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors duration-150 hover:bg-white/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/40"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-fg-muted transition-colors duration-150 hover:bg-surface-3 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/40"
           aria-label="Dismiss"
           title="Dismiss"
         >
@@ -368,16 +368,16 @@ export function FilesPage() {
       {/* Header */}
       <header className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-ink">
+          <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-fg">
             Secure files
           </h1>
-          <p className="mt-1 text-[13px] text-muted">
+          <p className="mt-1 text-[13px] text-fg-muted">
             {selected ? `${selected} · ${subtitle}` : subtitle}
           </p>
         </div>
         <button
           onClick={() => inputRef.current?.click()}
-          className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-cyan-glow px-3.5 py-2 text-sm font-medium text-[#0B0D17] transition-colors duration-150 hover:bg-[#7cebff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+          className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-accent px-3.5 py-2 text-sm font-medium text-fg-on-accent transition-colors duration-150 hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
         >
           {activeUploads > 0 ? (
             <>
@@ -417,7 +417,7 @@ export function FilesPage() {
         ))}
         <button
           onClick={() => setNewFolderOpen(true)}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-dashed border-line px-2.5 py-1.5 text-[13px] font-medium text-muted transition-colors duration-150 hover:border-cyan-glow/50 hover:text-cyan-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/40"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-dashed border-line px-2.5 py-1.5 text-[13px] font-medium text-fg-muted transition-colors duration-150 hover:border-accent-fg/50 hover:text-accent-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/40"
         >
           <FolderPlus className="h-3.5 w-3.5" strokeWidth={2} />
           New folder
@@ -440,21 +440,21 @@ export function FilesPage() {
         className={
           'mb-8 flex h-[132px] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed text-center transition-colors duration-150 ' +
           (dragOver
-            ? 'border-cyan-glow bg-cyan-glow/[0.06]'
-            : 'border-line bg-white/[0.015] hover:border-cyan-glow/50 hover:bg-cyan-glow/[0.03]')
+            ? 'border-accent-fg bg-accent/10'
+            : 'border-line bg-fg/[0.02] hover:border-accent-fg/50 hover:bg-accent/[0.04]')
         }
       >
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-card">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-surface-2">
           <Upload
-            className={dragOver ? 'h-[18px] w-[18px] text-cyan-glow' : 'h-[18px] w-[18px] text-muted'}
+            className={dragOver ? 'h-[18px] w-[18px] text-accent-fg' : 'h-[18px] w-[18px] text-fg-muted'}
             strokeWidth={1.75}
           />
         </div>
         <div>
-          <p className="text-sm font-medium text-ink">
+          <p className="text-sm font-medium text-fg">
             {selected ? `Drop files here to add to “${selected}”` : 'Drop files here or browse'}
           </p>
-          <p className="mt-0.5 text-xs text-muted">Encrypted · Max {MAX_FILE_MB} MB</p>
+          <p className="mt-0.5 text-xs text-fg-muted">Encrypted · Max {MAX_FILE_MB} MB</p>
         </div>
         <input
           ref={inputRef}
@@ -483,20 +483,20 @@ export function FilesPage() {
 
       {/* File list */}
       {isLoading ? (
-        <p className="text-sm text-muted">Loading…</p>
+        <p className="text-sm text-fg-muted">Loading…</p>
       ) : visible.length === 0 && uploads.length === 0 ? (
-        <div className="rounded-xl border border-line bg-card px-6 py-12 text-center">
-          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-white/[0.02]">
+        <div className="rounded-xl border border-line bg-surface-2 px-6 py-12 text-center">
+          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-fg/[0.03]">
             {selected ? (
-              <Folder className="h-5 w-5 text-muted" strokeWidth={1.75} />
+              <Folder className="h-5 w-5 text-fg-muted" strokeWidth={1.75} />
             ) : (
-              <FileIcon className="h-5 w-5 text-muted" strokeWidth={1.75} />
+              <FileIcon className="h-5 w-5 text-fg-muted" strokeWidth={1.75} />
             )}
           </div>
-          <p className="text-sm font-medium text-ink">
+          <p className="text-sm font-medium text-fg">
             {selected ? `“${selected}” is empty` : 'No files yet'}
           </p>
-          <p className="mt-1 text-[13px] text-muted">
+          <p className="mt-1 text-[13px] text-fg-muted">
             {selected
               ? 'Upload a file while this folder is selected, or move one here.'
               : 'Upload a file to store it encrypted at rest.'}
@@ -510,10 +510,10 @@ export function FilesPage() {
             return (
               <div
                 key={f.id}
-                className="group flex items-center gap-3.5 rounded-xl border border-line bg-card px-3.5 py-3 transition-colors duration-150 hover:bg-card-hover"
+                className="group flex items-center gap-3.5 rounded-xl border border-line bg-surface-2 px-3.5 py-3 transition-colors duration-150 hover:bg-surface-3"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line bg-white/[0.02]">
-                  <Icon className="h-5 w-5 text-cyan-glow" strokeWidth={1.75} />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line bg-fg/[0.03]">
+                  <Icon className="h-5 w-5 text-accent-fg" strokeWidth={1.75} />
                 </div>
 
                 <div className="min-w-0 flex-1">
@@ -523,27 +523,27 @@ export function FilesPage() {
                       <button
                         dir="auto"
                         onClick={() => setPreviewing(f)}
-                        className="min-w-0 truncate text-left text-sm font-medium text-ink hover:text-cyan-glow focus-visible:outline-none focus-visible:underline"
+                        className="min-w-0 truncate text-left text-sm font-medium text-fg hover:text-accent-fg focus-visible:outline-none focus-visible:underline"
                         title="Preview"
                       >
                         {f.filename}
                       </button>
                     ) : (
-                      <p dir="auto" className="truncate text-sm font-medium text-ink">
+                      <p dir="auto" className="truncate text-sm font-medium text-fg">
                         {f.filename}
                       </p>
                     )}
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-cyan-glow/20 bg-cyan-glow/[0.08] px-1.5 py-0.5 text-[11px] font-medium text-cyan-glow">
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-secure/25 bg-secure/10 px-1.5 py-0.5 text-[11px] font-medium text-secure">
                       <ShieldCheck className="h-3 w-3" strokeWidth={2} />
                       Encrypted
                     </span>
                   </div>
-                  <p className="mt-0.5 flex items-center gap-1.5 truncate text-[13px] text-muted">
+                  <p className="mt-0.5 flex items-center gap-1.5 truncate text-[13px] text-fg-muted">
                     <span className="truncate">
                       {label} · {humanSize(f.sizeBytes)}
                     </span>
                     {f.folder && selected === null && (
-                      <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-line bg-white/[0.03] px-1.5 py-0.5 text-[11px]">
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-line bg-fg/[0.03] px-1.5 py-0.5 text-[11px]">
                         <Folder className="h-3 w-3" strokeWidth={2} />
                         {f.folder}
                       </span>
@@ -555,7 +555,7 @@ export function FilesPage() {
                   {canPreview && (
                     <button
                       onClick={() => setPreviewing(f)}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors duration-150 hover:bg-white/[0.05] hover:text-cyan-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/40"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors duration-150 hover:bg-surface-3 hover:text-accent-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/40"
                       aria-label="Preview"
                       title="Preview"
                     >
@@ -564,7 +564,7 @@ export function FilesPage() {
                   )}
                   <button
                     onClick={() => openMove(f)}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors duration-150 hover:bg-white/[0.05] hover:text-violet-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-glow/40"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors duration-150 hover:bg-surface-3 hover:text-accent-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/40"
                     aria-label="Move to folder"
                     title="Move to folder"
                   >
@@ -572,7 +572,7 @@ export function FilesPage() {
                   </button>
                   <button
                     onClick={() => download(f)}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors duration-150 hover:bg-white/[0.05] hover:text-cyan-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/40"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors duration-150 hover:bg-surface-3 hover:text-accent-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/40"
                     aria-label="Download"
                     title="Download"
                   >
@@ -580,7 +580,7 @@ export function FilesPage() {
                   </button>
                   <button
                     onClick={() => setDeleting(f)}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors duration-150 hover:bg-danger/10 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors duration-150 hover:bg-danger/10 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40"
                     aria-label="Delete"
                     title="Delete"
                   >
@@ -608,7 +608,7 @@ export function FilesPage() {
         title="Delete file?"
         body={
           <>
-            <span dir="auto" className="font-medium text-ink">
+            <span dir="auto" className="font-medium text-fg">
               {deleting?.filename}
             </span>{' '}
             ({deleting ? humanSize(deleting.sizeBytes) : ''}) will be permanently deleted from the
@@ -630,12 +630,12 @@ export function FilesPage() {
         body={
           <>
             “
-            <span dir="auto" className="font-medium text-ink">
+            <span dir="auto" className="font-medium text-fg">
               {deletingFolder}
             </span>
             ” holds {deletingFolderCount} {deletingFolderCount === 1 ? 'file' : 'files'}. Delete
             them along with the folder, or keep them — kept files stay encrypted and move to{' '}
-            <span className="font-medium text-ink">All files</span>.
+            <span className="font-medium text-fg">All files</span>.
           </>
         }
         secondary={{
@@ -669,7 +669,7 @@ export function FilesPage() {
             maxLength={100}
             autoFocus
           />
-          <p className="text-[13px] text-muted">
+          <p className="text-[13px] text-fg-muted">
             Files you upload while this folder is selected are placed in it. A folder disappears
             once it has no files.
           </p>
@@ -694,7 +694,7 @@ export function FilesPage() {
             }}
             className="space-y-4"
           >
-            <p className="truncate text-sm text-muted">{moving.filename}</p>
+            <p className="truncate text-sm text-fg-muted">{moving.filename}</p>
             {folders.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 <FolderChip active={moveTarget === ''} onClick={() => setMoveTarget('')} icon={Files}>

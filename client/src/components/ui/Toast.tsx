@@ -33,12 +33,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 12 }}
               className={
-                'glass-strong rounded-xl px-4 py-2.5 text-sm font-medium shadow-glass ' +
+                'rounded-xl border border-line bg-surface-1 px-4 py-2.5 text-sm font-medium shadow-pop ' +
                 (t.tone === 'error'
-                  ? 'text-red-200'
+                  ? 'text-danger'
                   : t.tone === 'success'
-                    ? 'text-emerald-200'
-                    : 'text-ink')
+                    ? 'text-success'
+                    : 'text-fg')
               }
             >
               {t.message}

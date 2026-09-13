@@ -20,11 +20,11 @@ export function GlassModal({ open, onClose, title, children }: GlassModalProps) 
           exit={{ opacity: 0 }}
         >
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-overlay backdrop-blur-sm"
             onClick={onClose}
           />
           <motion.div
-            className="glass-strong relative z-10 w-full max-w-lg rounded-glass p-6"
+            className="relative z-10 border border-line bg-surface-1 shadow-pop w-full max-w-lg rounded-glass p-6"
             initial={{ opacity: 0, scale: 0.95, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 16 }}
@@ -34,7 +34,7 @@ export function GlassModal({ open, onClose, title, children }: GlassModalProps) 
               <h2 className="text-lg font-bold">{title}</h2>
               <button
                 onClick={onClose}
-                className="rounded-lg p-1 text-muted transition hover:bg-white/10 hover:text-ink"
+                className="rounded-lg p-1 text-fg-muted transition hover:bg-surface-3 hover:text-fg"
                 aria-label="Close"
               >
                 <X className="h-5 w-5" />

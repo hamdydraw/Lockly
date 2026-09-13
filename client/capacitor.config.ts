@@ -10,7 +10,8 @@ const config: CapacitorConfig = {
     // plain http — without this the WebView blocks those calls as mixed content.
     allowMixedContent: true,
   },
-  backgroundColor: '#0B0D17',
+  // No backgroundColor: MainActivity/SystemBarsPlugin set the window and WebView
+  // background from the saved theme so launch never flashes the wrong colour.
 };
 
 export default config;

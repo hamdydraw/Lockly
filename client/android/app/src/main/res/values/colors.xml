@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Window background before the WebView paints; follows the device until the
+         web app saves a theme (see SystemBarsPlugin). Matches the light bg token. -->
+    <color name="lockly_bg">#F5F6FA</color>
+</resources>

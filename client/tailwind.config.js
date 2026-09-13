@@ -1,3 +1,6 @@
+/** Theme token as a Tailwind colour that keeps opacity modifiers (`bg-accent/10`). */
+const rgb = (v) => `rgb(var(${v}) / <alpha-value>)`;
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
@@ -6,29 +9,27 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
+      // Values live in src/index.css per theme (DESIGN.md §3, §12).
       colors: {
-        // Premium dark cybersecurity SaaS palette
-        base: '#0B0D17', // app background
-        sidebar: '#111426', // sidebar surface
-        card: '#171B2D', // card / row surface
-        'card-hover': '#1D2238', // card / row hover
-        line: '#272D42', // borders & dividers
-        ink: '#F4F5F7', // primary text
-        // Brand accents — used subtly
-        violet: {
-          glow: '#8B7CFF',
+        bg: rgb('--bg'),
+        surface: { 1: rgb('--surface-1'), 2: rgb('--surface-2'), 3: rgb('--surface-3') },
+        line: { DEFAULT: rgb('--line'), strong: rgb('--line-strong') },
+        overlay: 'rgb(var(--overlay) / var(--overlay-a))',
+        fg: {
+          DEFAULT: rgb('--fg'),
+          muted: rgb('--fg-muted'),
+          subtle: rgb('--fg-subtle'),
+          'on-accent': rgb('--fg-on-accent'),
         },
-        cyan: {
-          glow: '#5EE7FF',
-        },
-        danger: '#FF647C',
+        accent: { DEFAULT: rgb('--accent'), fg: rgb('--accent-fg') },
+        secure: rgb('--secure'),
+        success: rgb('--success'),
+        warning: rgb('--warning'),
+        danger: { DEFAULT: rgb('--danger'), solid: rgb('--danger-solid') },
       },
       boxShadow: {
-        // Restrained, expensive-feeling elevation (no neon bloom)
-        card: '0 1px 2px rgba(0, 0, 0, 0.4)',
-        pop: '0 8px 24px rgba(0, 0, 0, 0.45)',
-        'glow-violet': '0 0 0 1px rgba(139, 124, 255, 0.35)',
-        'glow-cyan': '0 0 0 1px rgba(94, 231, 255, 0.35)',
+        raised: 'var(--shadow-raised)',
+        pop: 'var(--shadow-pop)',
       },
       borderRadius: {
         glass: '16px',

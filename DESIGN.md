@@ -39,8 +39,11 @@ html[data-theme="light"] { --bg: 245 246 250; ... }
 
 - Preference order: stored choice (`localStorage["lockly.theme"]` = `system | light | dark`)
   → `prefers-color-scheme`. Default is **system**.
-- An inline `<script>` in `index.html` sets `data-theme` before first paint (no flash).
-- `<meta name="theme-color">` is updated per theme for the Android WebView chrome.
+- `client/public/theme-init.js`, loaded as a blocking `<script src>` in `index.html`, sets
+  `data-theme` before first paint (no flash). It is not inline because the server CSP only
+  allows same-origin scripts.
+- `<meta name="theme-color">` is updated per theme for browser chrome. It does not reach the
+  Android app window, so the in-repo `SystemBars` Capacitor plugin sets the status bar there.
 - A `ThemeProvider` exposes `{ theme, resolved, setTheme }`. The toggle lives in
   Settings and as a compact control in the sidebar footer.
 - Variables are stored as space-separated RGB channels so Tailwind opacity modifiers keep
@@ -315,6 +318,7 @@ html[data-theme='dark'] {
   --fg: 244 245 247;
   --fg-muted: 169 177 198;
   --fg-subtle: 126 135 158;
+  --fg-on-accent: 255 255 255;
   --accent: 98 82 234;
   --accent-fg: 169 157 255;
   --secure: 94 231 255;
@@ -339,6 +343,7 @@ html[data-theme='light'] {
   --fg: 17 21 39;
   --fg-muted: 90 97 120;
   --fg-subtle: 122 130 153;
+  --fg-on-accent: 255 255 255;
   --accent: 91 75 224;
   --accent-fg: 91 75 224;
   --secure: 11 124 147;
@@ -401,7 +406,13 @@ export default {
         bg: rgb('--bg'),
         surface: { 1: rgb('--surface-1'), 2: rgb('--surface-2'), 3: rgb('--surface-3') },
         line: { DEFAULT: rgb('--line'), strong: rgb('--line-strong') },
-        fg: { DEFAULT: rgb('--fg'), muted: rgb('--fg-muted'), subtle: rgb('--fg-subtle') },
+        fg: {
+          DEFAULT: rgb('--fg'),
+          muted: rgb('--fg-muted'),
+          subtle: rgb('--fg-subtle'),
+          'on-accent': rgb('--fg-on-accent'),
+        },
+        overlay: 'rgb(var(--overlay) / var(--overlay-a))',
         accent: { DEFAULT: rgb('--accent'), fg: rgb('--accent-fg') },
         secure: rgb('--secure'),
         success: rgb('--success'),
@@ -425,34 +436,36 @@ export default {
 ```html
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#0B0D17" />
-<script>
-  (function () {
-    var s = localStorage.getItem('lockly.theme');
-    var t = s === 'light' || s === 'dark' ? s
-      : matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', t);
-  })();
-</script>
+<!-- Plain blocking script before the styles: picks the theme before first paint. -->
+<script src="/theme-init.js"></script>
 ```
 
-The Helmet CSP on the server already allows `'unsafe-inline'` styles but scripts are
-`'self'` only, so this snippet will be moved to a tiny `theme-init.js` in `client/public/`
-and loaded with a normal `<script src>` instead of inline. No server change needed.
+`client/public/theme-init.js` reads `localStorage["lockly.theme"]`, falls back to
+`prefers-color-scheme` (also when storage is blocked), and sets `data-theme` and the
+`theme-color` meta. It is a same-origin file rather than an inline script because the
+server's Helmet CSP allows scripts from `'self'` only. No server change needed.
+
+On Android, `theme-color` does not reach the app window, so the in-repo `SystemBars`
+Capacitor plugin (`client/android/app/src/main/java/com/hamdydraw/lockly/SystemBarsPlugin.java`)
+sets the status/navigation bar colour and icon contrast, and saves the last resolved theme
+so `MainActivity` paints the right background before the WebView loads.
 
 ---
 
 ## 13. Migration map
 
+✅ = shipped in `specs/001-light-theme`; everything else is still pending.
+
 | File | Change |
 |---|---|
-| `index.css`, `tailwind.config.js`, `index.html` | Tokens, themes, focus ring, viewport-fit, theme init |
-| `components/ui/*` | Rename Glass\* → Button, Input, Card, Dialog; add IconButton, PasswordInput, Textarea, SegmentedControl, Chip, Badge, ListRow, ConfirmDialog, Menu, Skeleton, EmptyState, ThemeToggle, NavItem |
-| `theme/ThemeProvider.tsx` (new) | Theme state, persistence, `theme-color` meta sync |
-| `components/AppShell.tsx` | Sidebar 240px with folders + footer; phone top bar + tab bar; safe areas; content bottom padding |
-| `components/AuroraBackground.tsx` | Dark only; flat canvas in light |
-| `pages/VaultPage.tsx` | List + filters + quick copy; two-pane on desktop |
-| `components/ItemModal.tsx` → `components/ItemEditor.tsx` | Type-specific forms; used by pane and sheet |
-| `pages/FilesPage.tsx` | Tokens, ConfirmDialog on delete, row Menu on phone, Skeleton/error states |
-| `pages/SettingsPage.tsx` | Sections: Appearance (theme), Account, Server (native), Security (master reset with confirm field), About/How data is protected |
-| `pages/AuthPage.tsx`, `UnlockPage.tsx`, `ServerSetupPage.tsx` | Tokens, display type, two-password explainer, inline errors |
+| `index.css`, `tailwind.config.js`, `index.html` | ✅ Tokens, themes, focus ring, viewport-fit, theme init |
+| `components/ui/*` | ✅ Token colours and `ThemeToggle`. Pending: rename Glass\* → Button, Input, Card, Dialog; add IconButton, PasswordInput, Textarea, SegmentedControl, Chip, Badge, ListRow, ConfirmDialog, Menu, Skeleton, EmptyState, NavItem |
+| `theme/ThemeProvider.tsx` (new) | ✅ Theme state, persistence, `theme-color` meta sync, Android system bars |
+| `components/AppShell.tsx` | ✅ Tokens; theme control in sidebar footer and phone top bar. Pending: sidebar 240px with folders; tab bar; safe areas; content bottom padding |
+| `components/AuroraBackground.tsx` | ✅ Dark only; flat canvas in light |
+| `pages/VaultPage.tsx` | ✅ Tokens. Pending: list + filters + quick copy; two-pane on desktop |
+| `components/ItemModal.tsx` → `components/ItemEditor.tsx` | ✅ Tokens. Pending: type-specific forms; used by pane and sheet |
+| `pages/FilesPage.tsx` | ✅ Tokens, ConfirmDialog on delete. Pending: row Menu on phone, Skeleton/error states |
+| `pages/SettingsPage.tsx` | ✅ Appearance (theme). Pending sections: Security (master reset with confirm field), About/How data is protected |
+| `pages/AuthPage.tsx`, `UnlockPage.tsx`, `ServerSetupPage.tsx` | ✅ Tokens. Pending: display type, two-password explainer, inline errors |
 | `lib/api.ts`, `lib/*`, `auth/*` | **No changes** |

@@ -15,11 +15,11 @@ export function GlassButton({
     <button
       className={cn(
         'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold',
-        'transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow disabled:opacity-50 disabled:cursor-not-allowed',
+        'transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg disabled:opacity-50 disabled:cursor-not-allowed',
         variant === 'primary' &&
-          'bg-gradient-to-r from-violet-glow to-cyan-glow text-[#1a1035] hover:shadow-glow-violet active:scale-[0.98]',
+          'bg-accent text-fg-on-accent hover:bg-accent/90 active:scale-[0.98]',
         variant === 'ghost' &&
-          'glass text-ink hover:bg-white/10 active:scale-[0.98]',
+          'border border-line bg-surface-2 text-fg shadow-raised hover:bg-surface-3 active:scale-[0.98]',
         className,
       )}
       {...rest}

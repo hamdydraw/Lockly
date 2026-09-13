@@ -137,7 +137,7 @@ export function FilePreview({ file, onClose, siblings, onNavigate }: FilePreview
     <AnimatePresence>
       {file && (
         <motion.div
-          className="fixed inset-0 z-50 flex flex-col bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex flex-col bg-overlay backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -147,20 +147,20 @@ export function FilePreview({ file, onClose, siblings, onNavigate }: FilePreview
           aria-label={`Preview of ${file.filename}`}
         >
           {/* Header */}
-          <div className="flex items-center gap-3 border-b border-line bg-sidebar px-4 py-3">
+          <div className="flex items-center gap-3 border-b border-line bg-surface-1 px-4 py-3">
             <div className="min-w-0 flex-1">
               {/* dir="auto" so an Arabic or Hebrew name reads right-to-left. */}
-              <p dir="auto" className="truncate text-sm font-medium text-ink">
+              <p dir="auto" className="truncate text-sm font-medium text-fg">
                 {file.filename}
               </p>
-              <p className="truncate text-[12px] text-muted">
+              <p className="truncate text-[12px] text-fg-muted">
                 {canPage && `${index + 1} of ${list!.length} · `}
                 {humanSize(file.sizeBytes)} · Decrypted in this tab only
               </p>
             </div>
             <button
               onClick={download}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors duration-150 hover:bg-white/[0.06] hover:text-cyan-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/40"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-fg-muted transition-colors duration-150 hover:bg-surface-3 hover:text-accent-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/40"
               aria-label="Download"
               title="Download"
             >
@@ -168,7 +168,7 @@ export function FilePreview({ file, onClose, siblings, onNavigate }: FilePreview
             </button>
             <button
               onClick={onClose}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors duration-150 hover:bg-white/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/40"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-fg-muted transition-colors duration-150 hover:bg-surface-3 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/40"
               aria-label="Close preview"
               title="Close (Esc)"
               autoFocus
@@ -188,7 +188,7 @@ export function FilePreview({ file, onClose, siblings, onNavigate }: FilePreview
               {error ? (
                 <Notice icon={AlertCircle} title="Preview unavailable" body={error} />
               ) : !blob || !kind ? (
-                <div className="flex items-center gap-2 text-sm text-muted">
+                <div className="flex items-center gap-2 text-sm text-fg-muted">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Decrypting…
                 </div>
@@ -222,7 +222,7 @@ function PageButton({ side, onClick }: { side: 'left' | 'right'; onClick: () => 
         onClick();
       }}
       className={
-        'absolute top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-black/50 text-muted backdrop-blur-sm transition-colors duration-150 hover:bg-black/70 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/40 ' +
+        'absolute top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-surface-1/80 text-fg-muted backdrop-blur-sm transition-colors duration-150 hover:bg-surface-1 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/40 ' +
         (side === 'left' ? 'left-2 sm:left-4' : 'right-2 sm:right-4')
       }
       aria-label={side === 'left' ? 'Previous file' : 'Next file'}
@@ -273,6 +273,7 @@ function Renderer({
           />
         );
       }
+      // bg-white is deliberate in both themes: it is the page behind the user's PDF, not app chrome.
       return (
         <iframe
           src={url ?? undefined}
@@ -282,8 +283,8 @@ function Renderer({
       );
     case 'audio':
       return (
-        <div className="w-full max-w-lg rounded-xl border border-line bg-card p-6">
-          <p className="mb-4 truncate text-center text-sm text-muted">{file.filename}</p>
+        <div className="w-full max-w-lg rounded-xl border border-line bg-surface-2 p-6">
+          <p className="mb-4 truncate text-center text-sm text-fg-muted">{file.filename}</p>
           <audio src={url ?? undefined} controls className="w-full" />
         </div>
       );
@@ -340,12 +341,12 @@ function TextRenderer({ blob, filename }: { blob: Blob; filename: string }) {
   return (
     <Pane>
       <div className="flex font-mono text-[12.5px] leading-[1.6]">
-        <ol className="select-none border-r border-line pr-3 text-right text-muted/60" aria-hidden>
+        <ol className="select-none border-r border-line pr-3 text-right text-fg-subtle" aria-hidden>
           {lines.map((_, i) => (
             <li key={i}>{i + 1}</li>
           ))}
         </ol>
-        <pre className="min-w-0 flex-1 whitespace-pre-wrap break-words pl-3 text-ink">{shown}</pre>
+        <pre className="min-w-0 flex-1 whitespace-pre-wrap break-words pl-3 text-fg">{shown}</pre>
       </div>
     </Pane>
   );
@@ -425,10 +426,10 @@ function SheetRenderer({ blob }: { blob: Blob }) {
                 key={s.name}
                 onClick={() => setActive(i)}
                 className={
-                  'shrink-0 rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/40 ' +
+                  'shrink-0 rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/40 ' +
                   (i === active
-                    ? 'bg-violet-glow/[0.15] text-ink'
-                    : 'text-muted hover:bg-white/[0.05] hover:text-ink')
+                    ? 'bg-accent/10 text-fg'
+                    : 'text-fg-muted hover:bg-surface-3 hover:text-fg')
                 }
               >
                 {s.name}
@@ -450,7 +451,7 @@ function Grid({ rows }: { rows: string[][] }) {
   const truncated = rows.length > MAX_TABLE_ROWS || rows.some((r) => r.length > MAX_TABLE_COLS);
 
   if (rows.length === 0) {
-    return <p className="p-6 text-center text-sm text-muted">This sheet is empty.</p>;
+    return <p className="p-6 text-center text-sm text-fg-muted">This sheet is empty.</p>;
   }
 
   return (
@@ -458,11 +459,11 @@ function Grid({ rows }: { rows: string[][] }) {
       <table className="border-collapse font-mono text-[12px] leading-tight">
         <thead className="sticky top-0 z-10">
           <tr>
-            <th className="sticky left-0 z-20 border-b border-r border-line bg-sidebar px-2 py-1.5 text-right text-muted/60" />
+            <th className="sticky left-0 z-20 border-b border-r border-line bg-surface-1 px-2 py-1.5 text-right text-fg-subtle" />
             {Array.from({ length: cols }, (_, c) => (
               <th
                 key={c}
-                className="border-b border-r border-line bg-sidebar px-3 py-1.5 text-center font-medium text-muted"
+                className="border-b border-r border-line bg-surface-1 px-3 py-1.5 text-center font-medium text-fg-muted"
               >
                 {columnLetter(c)}
               </th>
@@ -471,14 +472,14 @@ function Grid({ rows }: { rows: string[][] }) {
         </thead>
         <tbody>
           {shown.map((r, i) => (
-            <tr key={i} className="odd:bg-white/[0.012] hover:bg-white/[0.035]">
-              <td className="sticky left-0 z-10 border-b border-r border-line bg-sidebar px-2 py-1 text-right text-muted/60">
+            <tr key={i} className="odd:bg-fg/[0.02] hover:bg-surface-3">
+              <td className="sticky left-0 z-10 border-b border-r border-line bg-surface-1 px-2 py-1 text-right text-fg-subtle">
                 {i + 1}
               </td>
               {Array.from({ length: cols }, (_, c) => (
                 <td
                   key={c}
-                  className="max-w-[320px] truncate border-b border-r border-line/60 px-3 py-1 text-ink"
+                  className="max-w-[320px] truncate border-b border-r border-line/60 px-3 py-1 text-fg"
                   title={r[c] ?? ''}
                 >
                   {r[c] ?? ''}
@@ -489,7 +490,7 @@ function Grid({ rows }: { rows: string[][] }) {
         </tbody>
       </table>
       {truncated && (
-        <p className="sticky left-0 border-t border-line bg-sidebar px-3 py-2 text-[12px] text-muted">
+        <p className="sticky left-0 border-t border-line bg-surface-1 px-3 py-2 text-[12px] text-fg-muted">
           Showing the first {MAX_TABLE_ROWS.toLocaleString()} rows and {MAX_TABLE_COLS} columns.
           Download the file for the full data.
         </p>
@@ -515,16 +516,16 @@ function columnLetter(index: number): string {
 /** Scrollable card that fills the viewer; optional footer for sheet tabs. */
 function Pane({ children, footer }: { children: ReactNode; footer?: ReactNode }) {
   return (
-    <div className="mx-auto flex h-full w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-line bg-card shadow-pop">
+    <div className="mx-auto flex h-full w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-line bg-surface-2 shadow-pop">
       <div className="min-h-0 flex-1 overflow-auto p-4 [scrollbar-width:thin]">{children}</div>
-      {footer && <div className="border-t border-line bg-sidebar px-3 py-2">{footer}</div>}
+      {footer && <div className="border-t border-line bg-surface-1 px-3 py-2">{footer}</div>}
     </div>
   );
 }
 
 function Spinner({ label = 'Rendering…' }: { label?: string }) {
   return (
-    <div className="flex h-full items-center justify-center gap-2 text-sm text-muted">
+    <div className="flex h-full items-center justify-center gap-2 text-sm text-fg-muted">
       <Loader2 className="h-4 w-4 animate-spin" />
       {label}
     </div>
@@ -554,18 +555,18 @@ function Notice({
 }) {
   return (
     <div
-      className="mx-auto w-full max-w-sm rounded-xl border border-line bg-card px-6 py-8 text-center shadow-pop"
+      className="mx-auto w-full max-w-sm rounded-xl border border-line bg-surface-2 px-6 py-8 text-center shadow-pop"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-white/[0.02]">
-        <Icon className="h-5 w-5 text-muted" strokeWidth={1.75} />
+      <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-fg/[0.03]">
+        <Icon className="h-5 w-5 text-fg-muted" strokeWidth={1.75} />
       </div>
-      <p className="text-sm font-medium text-ink">{title}</p>
-      <p className="mt-1 text-[13px] text-muted">{body}</p>
+      <p className="text-sm font-medium text-fg">{title}</p>
+      <p className="mt-1 text-[13px] text-fg-muted">{body}</p>
       {action && (
         <button
           onClick={action.onClick}
-          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-cyan-glow px-3.5 py-2 text-sm font-medium text-[#0B0D17] transition-colors duration-150 hover:bg-[#7cebff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/50"
+          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-accent px-3.5 py-2 text-sm font-medium text-fg-on-accent transition-colors duration-150 hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/50"
         >
           <ExternalLink className="h-4 w-4" strokeWidth={2} />
           {action.label}

@@ -10,15 +10,15 @@ export const GlassInput = forwardRef<HTMLInputElement, GlassInputProps>(
     return (
       <label className="block">
         {label && (
-          <span className="mb-1.5 block text-sm font-medium text-muted">{label}</span>
+          <span className="mb-1.5 block text-sm font-medium text-fg-muted">{label}</span>
         )}
         <input
           ref={ref}
           id={id}
           className={cn(
-            'w-full rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 text-ink',
-            'placeholder:text-white/30 transition-all duration-200',
-            'focus:outline-none focus:border-cyan-glow/60 focus:bg-white/10 focus:shadow-glow-cyan',
+            'w-full rounded-xl border border-line-strong bg-surface-2 px-3.5 py-2.5 text-fg',
+            'placeholder:text-fg-subtle transition-all duration-200',
+            'focus:outline-none focus:border-accent-fg',
             className,
           )}
           {...rest}

@@ -31,17 +31,17 @@ export function ConfirmModal({ open, onClose, title, body, confirm, secondary }:
   return (
     <GlassModal open={open} onClose={busy ? () => {} : onClose} title={title}>
       <div className="flex gap-3.5">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-red-400/25 bg-red-400/[0.08]">
-          <AlertTriangle className="h-5 w-5 text-red-400" strokeWidth={1.75} />
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-danger/25 bg-danger/10">
+          <AlertTriangle className="h-5 w-5 text-danger" strokeWidth={1.75} />
         </div>
-        <div className="min-w-0 flex-1 text-[13px] leading-relaxed text-muted">{body}</div>
+        <div className="min-w-0 flex-1 text-[13px] leading-relaxed text-fg-muted">{body}</div>
       </div>
 
       <div className="mt-6 flex flex-wrap justify-end gap-2">
         <button
           onClick={onClose}
           disabled={busy}
-          className="rounded-xl px-4 py-2.5 text-sm font-semibold text-muted transition-colors duration-150 hover:bg-white/[0.06] hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-xl px-4 py-2.5 text-sm font-semibold text-fg-muted transition-colors duration-150 hover:bg-surface-3 hover:text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg disabled:cursor-not-allowed disabled:opacity-50"
         >
           Cancel
         </button>
@@ -68,8 +68,8 @@ function ActionButton({
       className={
         'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60 ' +
         (tone === 'danger'
-          ? 'bg-red-500/90 text-white hover:bg-red-500 focus-visible:ring-red-400 active:scale-[0.98]'
-          : 'border border-line bg-white/[0.04] text-ink hover:bg-white/[0.09] focus-visible:ring-cyan-glow active:scale-[0.98]')
+          ? 'bg-danger-solid text-fg-on-accent hover:bg-danger-solid/90 focus-visible:ring-danger active:scale-[0.98]'
+          : 'border border-line bg-fg/[0.03] text-fg hover:bg-surface-3 focus-visible:ring-accent-fg active:scale-[0.98]')
       }
     >
       {action.busy && <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />}

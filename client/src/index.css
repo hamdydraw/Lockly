@@ -2,8 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+/* Theme tokens (DESIGN.md §3, §12). Colours are space-separated RGB channels so
+   Tailwind opacity modifiers keep working: rgb(var(--accent) / <alpha-value>).
+   public/theme-init.js sets data-theme before first paint; dark is the default. */
+:root,
+html[data-theme='dark'] {
   color-scheme: dark;
+  --bg: 11 13 23;
+  --surface-1: 17 20 38;
+  --surface-2: 23 27 45;
+  --surface-3: 29 34 56;
+  --line: 42 49 73;
+  --line-strong: 58 66 96;
+  --overlay: 0 0 0;
+  --overlay-a: 0.6;
+  --fg: 244 245 247;
+  --fg-muted: 169 177 198;
+  --fg-subtle: 126 135 158;
+  --fg-on-accent: 255 255 255;
+  --accent: 98 82 234;
+  --accent-fg: 169 157 255;
+  --secure: 94 231 255;
+  --success: 91 214 143;
+  --warning: 245 196 81;
+  --danger: 255 122 142;
+  --danger-solid: 214 59 85;
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.5);
+}
+
+html[data-theme='light'] {
+  color-scheme: light;
+  --bg: 245 246 250;
+  --surface-1: 255 255 255;
+  --surface-2: 255 255 255;
+  --surface-3: 238 240 246;
+  --line: 226 229 238;
+  --line-strong: 180 187 204;
+  --overlay: 16 18 32;
+  --overlay-a: 0.45;
+  --fg: 17 21 39;
+  --fg-muted: 90 97 120;
+  --fg-subtle: 122 130 153;
+  --fg-on-accent: 255 255 255;
+  --accent: 91 75 224;
+  --accent-fg: 91 75 224;
+  --secure: 11 124 147;
+  --success: 21 122 70;
+  --warning: 154 103 0;
+  --danger: 200 50 75;
+  --danger-solid: 200 50 75;
+  --shadow-raised: 0 1px 2px rgb(16 18 32 / 0.06);
+  --shadow-pop: 0 12px 32px rgb(16 18 32 / 0.14);
 }
 
 html,
@@ -15,36 +65,23 @@ body,
 body {
   margin: 0;
   font-family: 'Inter', system-ui, sans-serif;
-  color: #f4f5f7;
-  background: #0b0d17;
+  color: rgb(var(--fg));
+  background: rgb(var(--bg));
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-@layer components {
-  /* Solid, restrained surface — replaces the old frosted glass.
-     Kept the .glass name so existing pages continue to render. */
-  .glass {
-    background: #171b2d;
-    border: 1px solid #272d42;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  }
-
-  /* Slightly deeper surface for prominent panels (auth / unlock cards). */
-  .glass-strong {
-    background: #111426;
-    border: 1px solid #272d42;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-  }
-
-  .text-muted {
-    color: #8b93a7;
-  }
+:focus-visible {
+  outline: 2px solid rgb(var(--accent-fg));
+  outline-offset: 2px;
 }
 
-/* Subtle, brand-tinted focus ring for keyboard users */
-*:focus-visible {
-  outline: none;
+/* ThemeProvider sets this for one frame so a theme switch is instant instead of
+   a staggered cross-fade through every transition-colors element. */
+html[data-theme-switching] *,
+html[data-theme-switching] *::before,
+html[data-theme-switching] *::after {
+  transition: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -123,8 +123,8 @@ export function ItemModal({ open, onClose, itemId }: Props) {
               className={
                 'rounded-lg px-3 py-1.5 text-xs font-medium transition ' +
                 (form.type === t.value
-                  ? 'bg-gradient-to-r from-violet-glow to-cyan-glow text-[#1a1035]'
-                  : 'glass text-muted hover:text-ink')
+                  ? 'bg-accent text-fg-on-accent'
+                  : 'border border-line bg-surface-2 text-fg-muted hover:text-fg')
               }
             >
               {t.label}
@@ -163,20 +163,20 @@ export function ItemModal({ open, onClose, itemId }: Props) {
 
         {/* Password / secret value */}
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-muted">Password</span>
+          <span className="mb-1.5 block text-sm font-medium text-fg-muted">Password</span>
           <div className="flex gap-2">
             <div className="relative flex-1">
               <input
                 type={reveal ? 'text' : 'password'}
                 value={form.secret.password ?? ''}
                 onChange={(e) => setSecret('password', e.target.value)}
-                className="w-full rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 pr-10 text-ink placeholder:text-white/30 focus:border-cyan-glow/60 focus:bg-white/10 focus:shadow-glow-cyan focus:outline-none"
+                className="w-full rounded-xl border border-line-strong bg-surface-2 px-3.5 py-2.5 pr-10 text-fg placeholder:text-fg-subtle focus:border-accent-fg focus:outline-none"
                 placeholder="••••••••"
               />
               <button
                 type="button"
                 onClick={() => setReveal((r) => !r)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-fg-muted hover:text-fg"
                 aria-label={reveal ? 'Hide' : 'Reveal'}
               >
                 {reveal ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -208,12 +208,12 @@ export function ItemModal({ open, onClose, itemId }: Props) {
         </div>
 
         <label className="block">
-          <span className="mb-1.5 block text-sm font-medium text-muted">Notes</span>
+          <span className="mb-1.5 block text-sm font-medium text-fg-muted">Notes</span>
           <textarea
             value={form.secret.notes ?? ''}
             onChange={(e) => setSecret('notes', e.target.value)}
             rows={3}
-            className="w-full rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 text-ink placeholder:text-white/30 focus:border-cyan-glow/60 focus:bg-white/10 focus:outline-none"
+            className="w-full rounded-xl border border-line-strong bg-surface-2 px-3.5 py-2.5 text-fg placeholder:text-fg-subtle focus:border-accent-fg focus:outline-none"
             placeholder="Anything else to remember…"
           />
         </label>
@@ -223,7 +223,7 @@ export function ItemModal({ open, onClose, itemId }: Props) {
             <button
               type="button"
               onClick={() => remove.mutate()}
-              className="inline-flex items-center gap-1.5 text-sm text-red-300 transition hover:text-red-200"
+              className="inline-flex items-center gap-1.5 text-sm text-danger transition hover:text-danger/80"
             >
               <Trash2 className="h-4 w-4" />
               Delete

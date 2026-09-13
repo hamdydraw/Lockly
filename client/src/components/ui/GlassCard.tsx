@@ -9,7 +9,9 @@ export function GlassCard({ strong, className, children, ...rest }: GlassCardPro
   return (
     <div
       className={cn(
-        strong ? 'glass-strong' : 'glass',
+        strong
+          ? 'border border-line bg-surface-1 shadow-pop'
+          : 'border border-line bg-surface-2 shadow-raised',
         'rounded-glass p-6',
         className,
       )}

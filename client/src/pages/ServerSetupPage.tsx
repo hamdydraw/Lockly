@@ -55,7 +55,7 @@ export function ServerSetupPage({ onConnected }: { onConnected: () => void }) {
               <Logo size={56} />
             </div>
             <h1 className="text-2xl font-extrabold tracking-tight">Connect to Lockly</h1>
-            <p className="mt-1 text-sm text-muted">
+            <p className="mt-1 text-sm text-fg-muted">
               Enter the address of your Lockly server. Your vault lives there, not on this
               phone.
             </p>
@@ -75,11 +75,11 @@ export function ServerSetupPage({ onConnected }: { onConnected: () => void }) {
               placeholder="192.168.1.20:4000"
             />
             {normalized && (
-              <p className="text-xs text-muted">
-                Will connect to <span className="text-ink">{normalized}</span>
+              <p className="text-xs text-fg-muted">
+                Will connect to <span className="text-fg">{normalized}</span>
               </p>
             )}
-            {error && <p className="text-sm text-rose-300">{error}</p>}
+            {error && <p className="text-sm text-danger">{error}</p>}
 
             <GlassButton type="submit" className="mt-2 w-full" disabled={busy || !url.trim()}>
               <Plug className="h-4 w-4" />
@@ -88,7 +88,7 @@ export function ServerSetupPage({ onConnected }: { onConnected: () => void }) {
           </form>
 
           {warnInsecure && (
-            <div className="mt-5 flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs text-amber-200/80">
+            <div className="mt-5 flex items-start gap-2 rounded-xl border border-warning/25 bg-warning/10 p-3 text-xs text-warning">
               <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
               <p>
                 This is a plain <span className="font-semibold">http://</span> address, so your

@@ -36,11 +36,11 @@ export function UnlockPage() {
         className="w-full max-w-sm"
       >
         <GlassCard strong className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-glow to-cyan-glow shadow-glow-cyan">
-            <KeyRound className="h-7 w-7 text-[#1a1035]" />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-secure/10">
+            <KeyRound className="h-7 w-7 text-secure" />
           </div>
           <h1 className="text-xl font-bold">Vault locked</h1>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-sm text-fg-muted">
             Enter your master password to unlock{session ? `, ${session.email}` : ''}.
           </p>
 
@@ -60,7 +60,7 @@ export function UnlockPage() {
           </form>
 
           <button
-            className="mt-5 inline-flex items-center gap-1.5 text-sm text-muted transition hover:text-ink"
+            className="mt-5 inline-flex items-center gap-1.5 text-sm text-fg-muted transition hover:text-fg"
             onClick={() => logout()}
           >
             <LogOut className="h-3.5 w-3.5" />

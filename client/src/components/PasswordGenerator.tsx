@@ -12,8 +12,8 @@ export function PasswordGenerator({ onGenerate }: { onGenerate: (pw: string) => 
     setOpts((o) => ({ ...o, [k]: !o[k] as never }));
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-      <div className="mb-2 flex items-center justify-between text-xs text-muted">
+    <div className="rounded-xl border border-line-strong bg-surface-2 p-3">
+      <div className="mb-2 flex items-center justify-between text-xs text-fg-muted">
         <span>Length: {opts.length}</span>
         <input
           type="range"
@@ -21,17 +21,17 @@ export function PasswordGenerator({ onGenerate }: { onGenerate: (pw: string) => 
           max={48}
           value={opts.length}
           onChange={(e) => setOpts((o) => ({ ...o, length: Number(e.target.value) }))}
-          className="mx-3 flex-1 accent-cyan-glow"
+          className="mx-3 flex-1 accent-accent"
         />
       </div>
       <div className="mb-3 flex flex-wrap gap-3 text-xs">
         {(['lower', 'upper', 'digits', 'symbols'] as const).map((k) => (
-          <label key={k} className="flex cursor-pointer items-center gap-1.5 text-muted">
+          <label key={k} className="flex cursor-pointer items-center gap-1.5 text-fg-muted">
             <input
               type="checkbox"
               checked={opts[k] as boolean}
               onChange={() => toggle(k)}
-              className="accent-cyan-glow"
+              className="accent-accent"
             />
             {k}
           </label>

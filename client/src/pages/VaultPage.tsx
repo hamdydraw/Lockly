@@ -45,19 +45,19 @@ export function VaultPage() {
       </div>
 
       <div className="relative mb-5">
-        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-muted" />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search vault…"
-          className="w-full rounded-xl border border-white/12 bg-white/5 py-2.5 pl-10 pr-4 text-ink placeholder:text-white/30 focus:border-cyan-glow/60 focus:bg-white/10 focus:outline-none"
+          className="w-full rounded-xl border border-line-strong bg-surface-2 py-2.5 pl-10 pr-4 text-fg placeholder:text-fg-subtle focus:border-accent-fg focus:outline-none"
         />
       </div>
 
       {isLoading ? (
-        <p className="text-muted">Loading…</p>
+        <p className="text-fg-muted">Loading…</p>
       ) : !items || items.length === 0 ? (
-        <GlassCard className="text-center text-muted">
+        <GlassCard className="text-center text-fg-muted">
           {q ? 'No matching items.' : 'Your vault is empty. Add your first item.'}
         </GlassCard>
       ) : (
@@ -71,21 +71,21 @@ export function VaultPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(i * 0.03, 0.3) }}
                 onClick={() => openEdit(item)}
-                className="glass rounded-glass p-4 text-left transition hover:bg-white/10 hover:shadow-glow-violet"
+                className="rounded-glass border border-line bg-surface-2 p-4 text-left shadow-raised transition hover:bg-surface-3"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-glow/80 to-cyan-glow/80">
-                    <Icon className="h-5 w-5 text-[#1a1035]" />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10">
+                    <Icon className="h-5 w-5 text-accent-fg" />
                   </div>
                   <div className="min-w-0">
                     <p className="truncate font-semibold">{item.title}</p>
-                    <p className="truncate text-xs text-muted">
+                    <p className="truncate text-xs text-fg-muted">
                       {item.username || item.url || item.type}
                     </p>
                   </div>
                 </div>
                 {item.folder && (
-                  <span className="mt-3 inline-block rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-muted">
+                  <span className="mt-3 inline-block rounded-full bg-surface-3 px-2 py-0.5 text-[11px] text-fg-muted">
                     {item.folder}
                   </span>
                 )}

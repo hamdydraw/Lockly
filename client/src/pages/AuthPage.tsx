@@ -50,7 +50,7 @@ export function AuthPage() {
               <Logo size={56} />
             </div>
             <h1 className="text-2xl font-extrabold tracking-tight">Lockly</h1>
-            <p className="mt-1 text-sm text-muted">
+            <p className="mt-1 text-sm text-fg-muted">
               {mode === 'login' ? 'Welcome back.' : 'Create your secure vault.'}
             </p>
           </div>
@@ -96,7 +96,7 @@ export function AuthPage() {
           </form>
 
           <button
-            className="mt-5 w-full text-center text-sm text-muted transition hover:text-ink"
+            className="mt-5 w-full text-center text-sm text-fg-muted transition hover:text-fg"
             onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
           >
             {mode === 'login'

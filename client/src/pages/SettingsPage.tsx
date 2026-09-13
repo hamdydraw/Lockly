@@ -4,6 +4,7 @@ import { StrengthMeter } from '../components/StrengthMeter';
 import { GlassButton } from '../components/ui/GlassButton';
 import { GlassCard } from '../components/ui/GlassCard';
 import { GlassInput } from '../components/ui/GlassInput';
+import { ThemeToggle } from '../components/ui/ThemeToggle';
 import { useToast } from '../components/ui/Toast';
 import { useAuth } from '../auth/AuthProvider';
 import { api, ApiError } from '../lib/api';
@@ -35,14 +36,22 @@ export function SettingsPage() {
       <h1 className="mb-6 text-2xl font-extrabold tracking-tight">Settings</h1>
 
       <GlassCard className="mb-4">
+        <h2 className="mb-1 font-semibold">Appearance</h2>
+        <p className="text-sm text-fg-muted">
+          Choose how Lockly looks. System follows your device setting.
+        </p>
+        <ThemeToggle variant="labeled" className="mt-3" />
+      </GlassCard>
+
+      <GlassCard className="mb-4">
         <h2 className="mb-1 font-semibold">Account</h2>
-        <p className="text-sm text-muted">{session?.email}</p>
+        <p className="text-sm text-fg-muted">{session?.email}</p>
       </GlassCard>
 
       {isNative && apiBase && (
         <GlassCard className="mb-4">
           <h2 className="mb-1 font-semibold">Server</h2>
-          <p className="mb-4 break-all text-sm text-muted">{serverOrigin(apiBase)}</p>
+          <p className="mb-4 break-all text-sm text-fg-muted">{serverOrigin(apiBase)}</p>
           <GlassButton
             variant="ghost"
             onClick={() => {
@@ -59,7 +68,7 @@ export function SettingsPage() {
 
       <GlassCard>
         <h2 className="mb-1 font-semibold">Change master password</h2>
-        <p className="mb-4 text-sm text-muted">
+        <p className="mb-4 text-sm text-fg-muted">
           Sets a new master password for unlocking your vault.
         </p>
         <form onSubmit={resetMaster} className="space-y-3">
@@ -79,7 +88,7 @@ export function SettingsPage() {
         </form>
       </GlassCard>
 
-      <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs text-amber-200/80">
+      <div className="mt-4 flex items-start gap-2 rounded-xl border border-warning/25 bg-warning/10 p-3 text-xs text-warning">
         <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
         <p>
           This build uses recoverable (server-side) encryption so a forgotten master password
