@@ -1,5 +1,6 @@
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useI18n } from '../../i18n/LanguageProvider';
 import { GlassModal } from './GlassModal';
 
 interface ConfirmAction {
@@ -26,6 +27,7 @@ interface ConfirmModalProps {
  * focused by default and stays disabled while the request is in flight.
  */
 export function ConfirmModal({ open, onClose, title, body, confirm, secondary }: ConfirmModalProps) {
+  const { t } = useI18n();
   const busy = confirm.busy || secondary?.busy || false;
 
   return (
@@ -43,7 +45,7 @@ export function ConfirmModal({ open, onClose, title, body, confirm, secondary }:
           disabled={busy}
           className="rounded-xl px-4 py-2.5 text-sm font-semibold text-fg-muted transition-colors duration-150 hover:bg-surface-3 hover:text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Cancel
+          {t('common.cancel')}
         </button>
         {secondary && <ActionButton action={secondary} busy={busy} tone="neutral" />}
         <ActionButton action={confirm} busy={busy} tone="danger" />

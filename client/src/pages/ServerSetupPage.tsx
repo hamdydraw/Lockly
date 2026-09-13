@@ -5,7 +5,9 @@ import { GlassButton } from '../components/ui/GlassButton';
 import { GlassCard } from '../components/ui/GlassCard';
 import { GlassInput } from '../components/ui/GlassInput';
 import { Logo } from '../components/ui/Logo';
-import { api, ApiError } from '../lib/api';
+import { useErrorText } from '../i18n/errors';
+import { useI18n } from '../i18n/LanguageProvider';
+import { api } from '../lib/api';
 import { isInsecure, normalizeServerUrl, setApiBase } from '../lib/config';
 
 /**
@@ -13,6 +15,8 @@ import { isInsecure, normalizeServerUrl, setApiBase } from '../lib/config';
  * in, so the user points it at their own Lockly instance once and we remember.
  */
 export function ServerSetupPage({ onConnected }: { onConnected: () => void }) {
+  const { t, tx } = useI18n();
+  const errorText = useErrorText();
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,11 +35,7 @@ export function ServerSetupPage({ onConnected }: { onConnected: () => void }) {
       setApiBase(normalized);
       onConnected();
     } catch (err) {
-      setError(
-        err instanceof ApiError && err.message
-          ? err.message
-          : "Couldn't reach that address.",
-      );
+      setError(errorText(err, 'errors.addressUnreachable'));
     } finally {
       setBusy(false);
     }
@@ -54,17 +54,17 @@ export function ServerSetupPage({ onConnected }: { onConnected: () => void }) {
             <div className="mx-auto mb-4 flex justify-center">
               <Logo size={56} />
             </div>
-            <h1 className="text-2xl font-extrabold tracking-tight">Connect to Lockly</h1>
-            <p className="mt-1 text-sm text-fg-muted">
-              Enter the address of your Lockly server. Your vault lives there, not on this
-              phone.
-            </p>
+            <h1 className="text-2xl font-extrabold tracking-tight">{t('serverSetup.title')}</h1>
+            <p className="mt-1 text-sm text-fg-muted">{t('serverSetup.description')}</p>
           </div>
 
           <form onSubmit={connect} className="space-y-3">
+            {/* Addresses always read left to right. */}
             <GlassInput
-              label="Server address"
+              label={t('serverSetup.addressLabel')}
               type="url"
+              dir="ltr"
+              className="rtl:text-right"
               inputMode="url"
               autoCapitalize="none"
               autoCorrect="off"
@@ -76,14 +76,20 @@ export function ServerSetupPage({ onConnected }: { onConnected: () => void }) {
             />
             {normalized && (
               <p className="text-xs text-fg-muted">
-                Will connect to <span className="text-fg">{normalized}</span>
+                {tx('serverSetup.willConnect', {
+                  address: (
+                    <span dir="ltr" className="text-fg">
+                      {normalized}
+                    </span>
+                  ),
+                })}
               </p>
             )}
             {error && <p className="text-sm text-danger">{error}</p>}
 
             <GlassButton type="submit" className="mt-2 w-full" disabled={busy || !url.trim()}>
               <Plug className="h-4 w-4" />
-              {busy ? 'Connecting…' : 'Connect'}
+              {busy ? t('common.connecting') : t('common.connect')}
             </GlassButton>
           </form>
 
@@ -91,10 +97,18 @@ export function ServerSetupPage({ onConnected }: { onConnected: () => void }) {
             <div className="mt-5 flex items-start gap-2 rounded-xl border border-warning/25 bg-warning/10 p-3 text-xs text-warning">
               <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
               <p>
-                This is a plain <span className="font-semibold">http://</span> address, so your
-                passwords travel over the network unencrypted. Fine on a home network you
-                trust — use <span className="font-semibold">https://</span> for anything
-                reachable from the internet.
+                {tx('serverSetup.insecureWarning', {
+                  http: (
+                    <span dir="ltr" className="font-semibold">
+                      http://
+                    </span>
+                  ),
+                  https: (
+                    <span dir="ltr" className="font-semibold">
+                      https://
+                    </span>
+                  ),
+                })}
               </p>
             </div>
           )}

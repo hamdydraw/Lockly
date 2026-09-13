@@ -113,7 +113,9 @@ surface). Applied via `:focus-visible` globally. The current global `outline: no
 Font: **Inter** for UI (already loaded, weights 400/500/600 only; 700/800 dropped).
 **Monospace** (`ui-monospace, "JetBrains Mono", "Cascadia Code", Consolas, monospace`) for
 passwords, card numbers, server addresses and generated values so glyphs like `l/1/I/O/0`
-are distinguishable. No web font is added.
+are distinguishable. Arabic uses **IBM Plex Sans Arabic** (400–700) from the same Google Fonts
+host, falling back to the OS Arabic font when offline; `:lang(ar)` resets letter-spacing because
+negative tracking breaks Arabic letter joining (§14).
 
 | Token | Size / line | Weight | Use |
 |---|---|---|---|
@@ -468,4 +470,36 @@ so `MainActivity` paints the right background before the WebView loads.
 | `pages/FilesPage.tsx` | ✅ Tokens, ConfirmDialog on delete. Pending: row Menu on phone, Skeleton/error states |
 | `pages/SettingsPage.tsx` | ✅ Appearance (theme). Pending sections: Security (master reset with confirm field), About/How data is protected |
 | `pages/AuthPage.tsx`, `UnlockPage.tsx`, `ServerSetupPage.tsx` | ✅ Tokens. Pending: display type, two-password explainer, inline errors |
+| `i18n/*`, `ui/SegmentedControl.tsx`, `ui/LanguageSwitcher.tsx` (new) | ✅ English/Arabic catalogs, RTL layout, language switch (`specs/002-arabic-rtl`) |
 | `lib/api.ts`, `lib/*`, `auth/*` | **No changes** |
+
+---
+
+## 14. Language & direction
+
+Lockly ships English and Arabic (`specs/002-arabic-rtl`). These rules keep both correct.
+
+- **Strings.** Every UI string comes from `client/src/i18n/messages/<lang>.ts` through
+  `useI18n()` (`t`, `tx`, `plural`, `pluralx`). `en.ts` defines the shape and other catalogs are
+  typed against it, so a missing key fails the build. One key per complete sentence; never
+  concatenate translated fragments.
+- **Direction.** `public/locale-init.js` sets `<html lang dir>` before first paint and
+  `LanguageProvider` keeps them in sync. Use logical utilities only: `ms- me- ps- pe- start- end-
+  text-start text-end border-s border-e rounded-s rounded-e`. `client/scripts/check-i18n.mjs`
+  rejects physical `left/right/ml/mr/pl/pr`; symmetric centring (`left-1/2 -translate-x-1/2`) is
+  allowed, and an `i18n-allow-physical` comment with a reason exempts the next line.
+- **Icons.** Arrows and chevrons that mean back, next or exit get `rtl:-scale-x-100`. Lock, trash,
+  download, eye and other non-directional icons never flip.
+- **Keyboard.** Horizontal arrow keys follow the visual direction, so they swap in RTL (segmented
+  controls, file viewer paging).
+- **User content keeps its own direction.** Put `dir="auto"` on elements that show titles,
+  usernames, folders, file names, notes and cell text; inside translated sentences pass the value
+  through `tx` (rendered in `<bdi dir="auto">`). Emails, passwords, URLs and server addresses are
+  always `dir="ltr"` with `rtl:text-right`.
+- **Numbers.** Western digits 0–9 in every language (`ar-u-nu-latn`). Format with `formatNumber`,
+  `formatBytes` or `plural`, never `toLocaleString()` or string concatenation.
+- **Errors.** Server messages are English; `client/src/i18n/errors.ts` maps each to a key
+  (`useErrorText`). `check-i18n.mjs` fails when the server adds a message without a mapping.
+- **Language control.** Settings → Language (`LanguageSwitcher`), each option labelled in its own
+  language. The choice is stored per device in `localStorage["lockly.lang"]`; first launch follows
+  the device language.

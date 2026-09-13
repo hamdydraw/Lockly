@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useI18n } from '../../i18n/LanguageProvider';
 
 interface GlassModalProps {
   open: boolean;
@@ -10,6 +11,8 @@ interface GlassModalProps {
 }
 
 export function GlassModal({ open, onClose, title, children }: GlassModalProps) {
+  const { t } = useI18n();
+
   return (
     <AnimatePresence>
       {open && (
@@ -35,7 +38,7 @@ export function GlassModal({ open, onClose, title, children }: GlassModalProps) 
               <button
                 onClick={onClose}
                 className="rounded-lg p-1 text-fg-muted transition hover:bg-surface-3 hover:text-fg"
-                aria-label="Close"
+                aria-label={t('common.close')}
               >
                 <X className="h-5 w-5" />
               </button>

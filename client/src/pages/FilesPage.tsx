@@ -26,50 +26,48 @@ import { GlassButton } from '../components/ui/GlassButton';
 import { GlassInput } from '../components/ui/GlassInput';
 import { GlassModal } from '../components/ui/GlassModal';
 import { useToast } from '../components/ui/Toast';
-import { api, ApiError } from '../lib/api';
+import { useErrorText } from '../i18n/errors';
+import { useI18n } from '../i18n/LanguageProvider';
+import { api } from '../lib/api';
 import { previewKind } from '../lib/preview';
 import type { FileMeta } from '../lib/types';
 
 /** Must match the multer limit in server/src/routes/files.ts. */
 const MAX_FILE_MB = 10;
 
-function humanSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+type FileKind = 'excel' | 'word' | 'pdf' | 'image' | 'archive' | 'text' | 'file';
 
-/** Maps a filename to a human label + line icon for the file-list row. */
-function fileKind(name: string): { label: string; Icon: LucideIcon } {
+/** Maps a filename to a label key + line icon for the file-list row. */
+function fileKind(name: string): { kind: FileKind; Icon: LucideIcon } {
   const ext = name.split('.').pop()?.toLowerCase() ?? '';
   switch (ext) {
     case 'xls':
     case 'xlsx':
     case 'csv':
-      return { label: 'Excel spreadsheet', Icon: FileSpreadsheet };
+      return { kind: 'excel', Icon: FileSpreadsheet };
     case 'doc':
     case 'docx':
-      return { label: 'Word document', Icon: FileText };
+      return { kind: 'word', Icon: FileText };
     case 'pdf':
-      return { label: 'PDF document', Icon: FileText };
+      return { kind: 'pdf', Icon: FileText };
     case 'png':
     case 'jpg':
     case 'jpeg':
     case 'gif':
     case 'webp':
     case 'svg':
-      return { label: 'Image', Icon: FileImage };
+      return { kind: 'image', Icon: FileImage };
     case 'zip':
     case 'rar':
     case '7z':
     case 'tar':
     case 'gz':
-      return { label: 'Archive', Icon: FileArchive };
+      return { kind: 'archive', Icon: FileArchive };
     case 'txt':
     case 'md':
-      return { label: 'Text file', Icon: FileText };
+      return { kind: 'text', Icon: FileText };
     default:
-      return { label: 'File', Icon: FileIcon };
+      return { kind: 'file', Icon: FileIcon };
   }
 }
 
@@ -92,6 +90,7 @@ function FolderChip({
   children: string;
   count?: number;
 }) {
+  const { t, formatNumber } = useI18n();
   return (
     <div
       className={
@@ -105,7 +104,7 @@ function FolderChip({
         onClick={onClick}
         className={
           'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/40 ' +
-          (onDelete ? 'pr-1.5' : '')
+          (onDelete ? 'pe-1.5' : '')
         }
       >
         <Icon className={active ? 'h-3.5 w-3.5 text-accent-fg' : 'h-3.5 w-3.5'} strokeWidth={2} />
@@ -114,7 +113,7 @@ function FolderChip({
         </span>
         {count !== undefined && (
           <span className={active ? 'text-[11px] text-accent-fg' : 'text-[11px] text-fg-subtle'}>
-            {count}
+            {formatNumber(count)}
           </span>
         )}
       </button>
@@ -123,11 +122,11 @@ function FolderChip({
           onClick={onDelete}
           // Always reachable by keyboard; revealed on hover or while selected.
           className={
-            'mr-1 flex h-6 w-6 items-center justify-center rounded-md text-fg-muted transition hover:bg-danger/10 hover:text-danger focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40 group-hover:opacity-100 ' +
+            'me-1 flex h-6 w-6 items-center justify-center rounded-md text-fg-muted transition hover:bg-danger/10 hover:text-danger focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40 group-hover:opacity-100 ' +
             (active ? 'opacity-100' : 'opacity-0')
           }
-          aria-label={`Delete folder ${children}`}
-          title="Delete folder"
+          aria-label={t('files.deleteFolderLabel', { name: children })}
+          title={t('files.deleteFolder')}
         >
           <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
         </button>
@@ -145,13 +144,16 @@ interface Upload {
   progress: number;
   /** Bytes are all sent; the server is sealing and storing them. */
   encrypting?: boolean;
+  /** Already translated when the upload failed. */
   error?: string;
 }
 
 /** Progress row shown above the file list while an upload is in flight. */
 function UploadRow({ upload, onDismiss }: { upload: Upload; onDismiss: () => void }) {
+  const { t, formatBytes } = useI18n();
   const failed = upload.error !== undefined;
   const percent = Math.round(upload.progress * 100);
+  const size = formatBytes(upload.size);
 
   return (
     <div className="flex items-center gap-3.5 rounded-xl border border-line bg-surface-2 px-3.5 py-3">
@@ -171,14 +173,14 @@ function UploadRow({ upload, onDismiss }: { upload: Upload; onDismiss: () => voi
           {failed
             ? upload.error
             : upload.encrypting
-              ? `Encrypting on the server… · ${humanSize(upload.size)}`
-              : `Uploading ${percent}% · ${humanSize(upload.size)}`}
+              ? t('files.encryptingOnServer', { size })
+              : t('files.uploadingPercent', { percent, size })}
         </p>
         {!failed && (
           <div
             className="mt-2 h-1 w-full overflow-hidden rounded-full bg-fg/[0.06]"
             role="progressbar"
-            aria-label={`Uploading ${upload.name}`}
+            aria-label={t('files.uploadingAria', { name: upload.name })}
             aria-valuenow={percent}
             aria-valuemin={0}
             aria-valuemax={100}
@@ -200,8 +202,8 @@ function UploadRow({ upload, onDismiss }: { upload: Upload; onDismiss: () => voi
         <button
           onClick={onDismiss}
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-fg-muted transition-colors duration-150 hover:bg-surface-3 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/40"
-          aria-label="Dismiss"
-          title="Dismiss"
+          aria-label={t('common.dismiss')}
+          title={t('common.dismiss')}
         >
           <X className="h-4 w-4" strokeWidth={2} />
         </button>
@@ -213,6 +215,8 @@ function UploadRow({ upload, onDismiss }: { upload: Upload; onDismiss: () => voi
 export function FilesPage() {
   const qc = useQueryClient();
   const toast = useToast();
+  const { t, tx, plural, pluralx, formatBytes } = useI18n();
+  const errorText = useErrorText();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
@@ -273,9 +277,9 @@ export function FilesPage() {
       );
       setUploads((prev) => prev.filter((u) => u.id !== id));
       await qc.invalidateQueries({ queryKey: ['files'] });
-      toast(`${file.name} uploaded & encrypted`, 'success');
+      toast(t('files.uploadedToast', { name: file.name }), 'success');
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : 'Upload failed';
+      const message = errorText(err, 'errors.uploadFailed');
       patch({ error: message, encrypting: false });
       toast(message, 'error');
     }
@@ -285,10 +289,10 @@ export function FilesPage() {
     mutationFn: (id: string) => api.deleteFile(id),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ['files'] });
-      toast('File deleted', 'success');
+      toast(t('files.fileDeleted'), 'success');
       setDeleting(null);
     },
-    onError: (err) => toast(err instanceof ApiError ? err.message : 'Delete failed', 'error'),
+    onError: (err) => toast(errorText(err, 'errors.deleteFailed'), 'error'),
   });
 
   // `deleteFiles` distinguishes "delete the folder and everything in it" from
@@ -302,24 +306,26 @@ export function FilesPage() {
       if (selected === vars.folder) setSelected(null);
       toast(
         vars.deleteFiles
-          ? `Deleted “${vars.folder}” and ${res.count} ${res.count === 1 ? 'file' : 'files'}`
-          : `Deleted “${vars.folder}”; ${res.count} ${res.count === 1 ? 'file is' : 'files are'} now unfiled`,
+          ? plural('files.folderDeletedWithFiles', res.count, { folder: vars.folder })
+          : plural('files.folderDeletedKeptFiles', res.count, { folder: vars.folder }),
         'success',
       );
       setDeletingFolder(null);
     },
-    onError: (err) =>
-      toast(err instanceof ApiError ? err.message : 'Could not delete the folder', 'error'),
+    onError: (err) => toast(errorText(err, 'errors.folderDeleteFailed'), 'error'),
   });
 
   const move = useMutation({
     mutationFn: ({ id, folder }: { id: string; folder: string | null }) => api.moveFile(id, folder),
     onSuccess: async (_data, vars) => {
       await qc.invalidateQueries({ queryKey: ['files'] });
-      toast(vars.folder ? `Moved to ${vars.folder}` : 'Removed from folder', 'success');
+      toast(
+        vars.folder ? t('files.movedTo', { folder: vars.folder }) : t('files.removedFromFolder'),
+        'success',
+      );
       setMoving(null);
     },
-    onError: (err) => toast(err instanceof ApiError ? err.message : 'Move failed', 'error'),
+    onError: (err) => toast(errorText(err, 'errors.moveFailed'), 'error'),
   });
 
   function handleFiles(list: FileList | null) {
@@ -328,7 +334,7 @@ export function FilesPage() {
     const folder = selected;
     for (const f of Array.from(list)) {
       if (f.size > MAX_FILE_MB * 1024 * 1024) {
-        toast(`${f.name} is larger than ${MAX_FILE_MB} MB`, 'error');
+        toast(t('errors.fileTooLarge', { name: f.name, max: MAX_FILE_MB }), 'error');
         continue;
       }
       void startUpload(f, folder);
@@ -338,8 +344,8 @@ export function FilesPage() {
   async function download(f: FileMeta) {
     try {
       await api.downloadFile(f.id, f.filename);
-    } catch {
-      toast('Download failed', 'error');
+    } catch (err) {
+      toast(errorText(err, 'errors.downloadFailed'), 'error');
     }
   }
 
@@ -361,7 +367,7 @@ export function FilesPage() {
   const deletingFolderCount = folders.find((f) => f.name === deletingFolder)?.count ?? 0;
   const count = visible.length;
   const totalBytes = visible.reduce((sum, f) => sum + f.sizeBytes, 0);
-  const subtitle = `${count} ${count === 1 ? 'file' : 'files'} · ${humanSize(totalBytes)}`;
+  const summary = plural('files.summary', count, { size: formatBytes(totalBytes) });
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -369,10 +375,10 @@ export function FilesPage() {
       <header className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-fg">
-            Secure files
+            {t('files.title')}
           </h1>
           <p className="mt-1 text-[13px] text-fg-muted">
-            {selected ? `${selected} · ${subtitle}` : subtitle}
+            {selected ? tx('files.folderSummary', { folder: selected, summary }) : summary}
           </p>
         </div>
         <button
@@ -382,12 +388,12 @@ export function FilesPage() {
           {activeUploads > 0 ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
-              Uploading {activeUploads}…
+              {plural('files.uploading', activeUploads)}
             </>
           ) : (
             <>
               <Upload className="h-4 w-4" strokeWidth={2} />
-              Upload files
+              {t('files.uploadFiles')}
             </>
           )}
         </button>
@@ -401,7 +407,7 @@ export function FilesPage() {
           icon={Files}
           count={files?.length ?? 0}
         >
-          All files
+          {t('files.allFiles')}
         </FolderChip>
         {folders.map((f) => (
           <FolderChip
@@ -420,7 +426,7 @@ export function FilesPage() {
           className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-dashed border-line px-2.5 py-1.5 text-[13px] font-medium text-fg-muted transition-colors duration-150 hover:border-accent-fg/50 hover:text-accent-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/40"
         >
           <FolderPlus className="h-3.5 w-3.5" strokeWidth={2} />
-          New folder
+          {t('files.newFolder')}
         </button>
       </div>
 
@@ -452,9 +458,9 @@ export function FilesPage() {
         </div>
         <div>
           <p className="text-sm font-medium text-fg">
-            {selected ? `Drop files here to add to “${selected}”` : 'Drop files here or browse'}
+            {selected ? tx('files.dropInto', { folder: selected }) : t('files.dropHere')}
           </p>
-          <p className="mt-0.5 text-xs text-fg-muted">Encrypted · Max {MAX_FILE_MB} MB</p>
+          <p className="mt-0.5 text-xs text-fg-muted">{t('files.dropHint', { max: MAX_FILE_MB })}</p>
         </div>
         <input
           ref={inputRef}
@@ -483,7 +489,7 @@ export function FilesPage() {
 
       {/* File list */}
       {isLoading ? (
-        <p className="text-sm text-fg-muted">Loading…</p>
+        <p className="text-sm text-fg-muted">{t('app.loading')}</p>
       ) : visible.length === 0 && uploads.length === 0 ? (
         <div className="rounded-xl border border-line bg-surface-2 px-6 py-12 text-center">
           <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-fg/[0.03]">
@@ -494,18 +500,16 @@ export function FilesPage() {
             )}
           </div>
           <p className="text-sm font-medium text-fg">
-            {selected ? `“${selected}” is empty` : 'No files yet'}
+            {selected ? tx('files.emptyFolder', { folder: selected }) : t('files.empty')}
           </p>
           <p className="mt-1 text-[13px] text-fg-muted">
-            {selected
-              ? 'Upload a file while this folder is selected, or move one here.'
-              : 'Upload a file to store it encrypted at rest.'}
+            {selected ? t('files.emptyFolderHint') : t('files.emptyHint')}
           </p>
         </div>
       ) : (
         <div className="space-y-1.5">
           {visible.map((f) => {
-            const { label, Icon } = fileKind(f.filename);
+            const { kind, Icon } = fileKind(f.filename);
             const canPreview = previewKind(f.filename, f.mimeType) !== null;
             return (
               <div
@@ -523,8 +527,8 @@ export function FilesPage() {
                       <button
                         dir="auto"
                         onClick={() => setPreviewing(f)}
-                        className="min-w-0 truncate text-left text-sm font-medium text-fg hover:text-accent-fg focus-visible:outline-none focus-visible:underline"
-                        title="Preview"
+                        className="min-w-0 truncate text-start text-sm font-medium text-fg hover:text-accent-fg focus-visible:outline-none focus-visible:underline"
+                        title={t('common.preview')}
                       >
                         {f.filename}
                       </button>
@@ -535,17 +539,17 @@ export function FilesPage() {
                     )}
                     <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-secure/25 bg-secure/10 px-1.5 py-0.5 text-[11px] font-medium text-secure">
                       <ShieldCheck className="h-3 w-3" strokeWidth={2} />
-                      Encrypted
+                      {t('files.encrypted')}
                     </span>
                   </div>
                   <p className="mt-0.5 flex items-center gap-1.5 truncate text-[13px] text-fg-muted">
                     <span className="truncate">
-                      {label} · {humanSize(f.sizeBytes)}
+                      {t(`files.kinds.${kind}`)} · {formatBytes(f.sizeBytes)}
                     </span>
                     {f.folder && selected === null && (
                       <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-line bg-fg/[0.03] px-1.5 py-0.5 text-[11px]">
                         <Folder className="h-3 w-3" strokeWidth={2} />
-                        {f.folder}
+                        <span dir="auto">{f.folder}</span>
                       </span>
                     )}
                   </p>
@@ -556,8 +560,8 @@ export function FilesPage() {
                     <button
                       onClick={() => setPreviewing(f)}
                       className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors duration-150 hover:bg-surface-3 hover:text-accent-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/40"
-                      aria-label="Preview"
-                      title="Preview"
+                      aria-label={t('common.preview')}
+                      title={t('common.preview')}
                     >
                       <Eye className="h-[18px] w-[18px]" strokeWidth={1.75} />
                     </button>
@@ -565,24 +569,24 @@ export function FilesPage() {
                   <button
                     onClick={() => openMove(f)}
                     className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors duration-150 hover:bg-surface-3 hover:text-accent-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/40"
-                    aria-label="Move to folder"
-                    title="Move to folder"
+                    aria-label={t('files.moveToFolder')}
+                    title={t('files.moveToFolder')}
                   >
                     <FolderInput className="h-[18px] w-[18px]" strokeWidth={1.75} />
                   </button>
                   <button
                     onClick={() => download(f)}
                     className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors duration-150 hover:bg-surface-3 hover:text-accent-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/40"
-                    aria-label="Download"
-                    title="Download"
+                    aria-label={t('common.download')}
+                    title={t('common.download')}
                   >
                     <Download className="h-[18px] w-[18px]" strokeWidth={1.75} />
                   </button>
                   <button
                     onClick={() => setDeleting(f)}
                     className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors duration-150 hover:bg-danger/10 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40"
-                    aria-label="Delete"
-                    title="Delete"
+                    aria-label={t('common.delete')}
+                    title={t('common.delete')}
                   >
                     <Trash2 className="h-[18px] w-[18px]" strokeWidth={1.75} />
                   </button>
@@ -605,18 +609,17 @@ export function FilesPage() {
       <ConfirmModal
         open={deleting !== null}
         onClose={() => setDeleting(null)}
-        title="Delete file?"
-        body={
-          <>
+        title={t('files.deleteFileTitle')}
+        body={tx('files.deleteFileBody', {
+          name: (
             <span dir="auto" className="font-medium text-fg">
               {deleting?.filename}
-            </span>{' '}
-            ({deleting ? humanSize(deleting.sizeBytes) : ''}) will be permanently deleted from the
-            server. This cannot be undone.
-          </>
-        }
+            </span>
+          ),
+          size: deleting ? formatBytes(deleting.sizeBytes) : '',
+        })}
         confirm={{
-          label: 'Delete file',
+          label: t('files.deleteFileConfirm'),
           busy: remove.isPending,
           onClick: () => deleting && remove.mutate(deleting.id),
         }}
@@ -626,26 +629,23 @@ export function FilesPage() {
       <ConfirmModal
         open={deletingFolder !== null}
         onClose={() => setDeletingFolder(null)}
-        title="Delete folder?"
-        body={
-          <>
-            “
+        title={t('files.deleteFolderTitle')}
+        body={pluralx('files.deleteFolderBody', deletingFolderCount, {
+          name: (
             <span dir="auto" className="font-medium text-fg">
               {deletingFolder}
             </span>
-            ” holds {deletingFolderCount} {deletingFolderCount === 1 ? 'file' : 'files'}. Delete
-            them along with the folder, or keep them — kept files stay encrypted and move to{' '}
-            <span className="font-medium text-fg">All files</span>.
-          </>
-        }
+          ),
+          allFiles: <span className="font-medium text-fg">{t('files.allFiles')}</span>,
+        })}
         secondary={{
-          label: 'Keep the files',
+          label: t('files.keepFiles'),
           busy: removeFolder.isPending && removeFolder.variables?.deleteFiles === false,
           onClick: () =>
             deletingFolder && removeFolder.mutate({ folder: deletingFolder, deleteFiles: false }),
         }}
         confirm={{
-          label: `Delete folder & ${deletingFolderCount} ${deletingFolderCount === 1 ? 'file' : 'files'}`,
+          label: plural('files.deleteFolderConfirm', deletingFolderCount),
           busy: removeFolder.isPending && removeFolder.variables?.deleteFiles === true,
           onClick: () =>
             deletingFolder && removeFolder.mutate({ folder: deletingFolder, deleteFiles: true }),
@@ -653,7 +653,7 @@ export function FilesPage() {
       />
 
       {/* New folder */}
-      <GlassModal open={newFolderOpen} onClose={() => setNewFolderOpen(false)} title="New folder">
+      <GlassModal open={newFolderOpen} onClose={() => setNewFolderOpen(false)} title={t('files.newFolder')}>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -662,30 +662,28 @@ export function FilesPage() {
           className="space-y-4"
         >
           <GlassInput
-            label="Folder name"
+            label={t('files.folderName')}
+            dir="auto"
             value={newFolderName}
             onChange={(e) => setNewFolderName(e.target.value)}
-            placeholder="e.g. Documents"
+            placeholder={t('files.folderNamePlaceholder')}
             maxLength={100}
             autoFocus
           />
-          <p className="text-[13px] text-fg-muted">
-            Files you upload while this folder is selected are placed in it. A folder disappears
-            once it has no files.
-          </p>
+          <p className="text-[13px] text-fg-muted">{t('files.newFolderHint')}</p>
           <div className="flex justify-end gap-2">
             <GlassButton type="button" variant="ghost" onClick={() => setNewFolderOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </GlassButton>
             <GlassButton type="submit" disabled={!newFolderName.trim()}>
-              Create
+              {t('common.create')}
             </GlassButton>
           </div>
         </form>
       </GlassModal>
 
       {/* Move to folder */}
-      <GlassModal open={moving !== null} onClose={() => setMoving(null)} title="Move to folder">
+      <GlassModal open={moving !== null} onClose={() => setMoving(null)} title={t('files.moveToFolder')}>
         {moving && (
           <form
             onSubmit={(e) => {
@@ -694,11 +692,13 @@ export function FilesPage() {
             }}
             className="space-y-4"
           >
-            <p className="truncate text-sm text-fg-muted">{moving.filename}</p>
+            <p dir="auto" className="truncate text-sm text-fg-muted">
+              {moving.filename}
+            </p>
             {folders.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 <FolderChip active={moveTarget === ''} onClick={() => setMoveTarget('')} icon={Files}>
-                  No folder
+                  {t('files.noFolder')}
                 </FolderChip>
                 {folders.map((f) => (
                   <FolderChip
@@ -713,18 +713,19 @@ export function FilesPage() {
               </div>
             )}
             <GlassInput
-              label={folders.length > 0 ? 'Or type a folder name' : 'Folder name'}
+              label={folders.length > 0 ? t('files.orTypeFolder') : t('files.folderName')}
+              dir="auto"
               value={moveTarget}
               onChange={(e) => setMoveTarget(e.target.value)}
-              placeholder="e.g. Documents"
+              placeholder={t('files.folderNamePlaceholder')}
               maxLength={100}
             />
             <div className="flex justify-end gap-2">
               <GlassButton type="button" variant="ghost" onClick={() => setMoving(null)}>
-                Cancel
+                {t('common.cancel')}
               </GlassButton>
               <GlassButton type="submit" disabled={move.isPending}>
-                {move.isPending ? 'Moving…' : 'Move'}
+                {move.isPending ? t('common.moving') : t('common.move')}
               </GlassButton>
             </div>
           </form>

@@ -6,11 +6,15 @@ import { GlassButton } from '../components/ui/GlassButton';
 import { GlassCard } from '../components/ui/GlassCard';
 import { GlassInput } from '../components/ui/GlassInput';
 import { useToast } from '../components/ui/Toast';
-import { api, ApiError } from '../lib/api';
+import { useErrorText } from '../i18n/errors';
+import { useI18n } from '../i18n/LanguageProvider';
+import { api } from '../lib/api';
 
 export function UnlockPage() {
   const { session, refresh, logout } = useAuth();
   const toast = useToast();
+  const { t, tx } = useI18n();
+  const errorText = useErrorText();
   const [masterPassword, setMasterPassword] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -21,7 +25,7 @@ export function UnlockPage() {
       await api.unlock(masterPassword);
       await refresh();
     } catch (err) {
-      toast(err instanceof ApiError ? err.message : 'Unlock failed', 'error');
+      toast(errorText(err, 'errors.unlockFailed'), 'error');
     } finally {
       setBusy(false);
     }
@@ -39,23 +43,27 @@ export function UnlockPage() {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-secure/10">
             <KeyRound className="h-7 w-7 text-secure" />
           </div>
-          <h1 className="text-xl font-bold">Vault locked</h1>
+          <h1 className="text-xl font-bold">{t('unlock.title')}</h1>
           <p className="mt-1 text-sm text-fg-muted">
-            Enter your master password to unlock{session ? `, ${session.email}` : ''}.
+            {session
+              ? tx('unlock.promptWithEmail', { email: <bdi dir="ltr">{session.email}</bdi> })
+              : t('unlock.prompt')}
           </p>
 
-          <form onSubmit={submit} className="mt-5 space-y-3 text-left">
+          <form onSubmit={submit} className="mt-5 space-y-3 text-start">
             <GlassInput
               type="password"
+              dir="ltr"
+              className="rtl:text-right"
               autoFocus
               required
               value={masterPassword}
               onChange={(e) => setMasterPassword(e.target.value)}
-              placeholder="Master password"
+              placeholder={t('unlock.placeholder')}
             />
             <GlassButton type="submit" className="w-full" disabled={busy}>
               <Unlock className="h-4 w-4" />
-              {busy ? 'Unlocking…' : 'Unlock'}
+              {busy ? t('unlock.unlocking') : t('unlock.unlock')}
             </GlassButton>
           </form>
 
@@ -63,8 +71,8 @@ export function UnlockPage() {
             className="mt-5 inline-flex items-center gap-1.5 text-sm text-fg-muted transition hover:text-fg"
             onClick={() => logout()}
           >
-            <LogOut className="h-3.5 w-3.5" />
-            Sign out
+            <LogOut className="h-3.5 w-3.5 rtl:-scale-x-100" />
+            {t('common.signOut')}
           </button>
         </GlassCard>
       </motion.div>

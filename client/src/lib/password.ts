@@ -33,12 +33,13 @@ export function generatePassword(opts: GenOptions): string {
 
 export interface Strength {
   score: 0 | 1 | 2 | 3 | 4;
-  label: string;
+  /** Nothing typed yet. Labels are translated by the caller from score/empty. */
+  empty: boolean;
 }
 
 /** Lightweight strength estimate based on length + character-class variety. */
 export function estimateStrength(pw: string): Strength {
-  if (!pw) return { score: 0, label: 'Empty' };
+  if (!pw) return { score: 0, empty: true };
   let variety = 0;
   if (/[a-z]/.test(pw)) variety++;
   if (/[A-Z]/.test(pw)) variety++;
@@ -52,6 +53,5 @@ export function estimateStrength(pw: string): Strength {
   if (pw.length >= 16 && variety >= 3) score++;
   score = Math.min(score, 4) as Strength['score'];
 
-  const labels = ['Very weak', 'Weak', 'Fair', 'Strong', 'Very strong'];
-  return { score: score as Strength['score'], label: labels[score] };
+  return { score: score as Strength['score'], empty: false };
 }

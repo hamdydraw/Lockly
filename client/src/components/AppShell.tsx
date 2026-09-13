@@ -2,19 +2,21 @@ import { FolderLock, KeyRound, Lock, LogOut, Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
+import { useI18n, type MessageKey } from '../i18n/LanguageProvider';
 import { api } from '../lib/api';
 import { cn } from './ui/cn';
 import { Logo } from './ui/Logo';
 import { ThemeToggle } from './ui/ThemeToggle';
 
-const nav = [
-  { to: '/vault', label: 'Vault', icon: KeyRound },
-  { to: '/files', label: 'Files', icon: FolderLock },
-  { to: '/settings', label: 'Settings', icon: Settings },
+const nav: { to: string; label: MessageKey; icon: typeof KeyRound }[] = [
+  { to: '/vault', label: 'nav.vault', icon: KeyRound },
+  { to: '/files', label: 'nav.files', icon: FolderLock },
+  { to: '/settings', label: 'nav.settings', icon: Settings },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { session, refresh, logout } = useAuth();
+  const { t } = useI18n();
 
   async function lock() {
     await api.lock();
@@ -47,7 +49,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               {({ isActive }) => (
                 <>
                   {isActive && (
-                    <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-accent" />
+                    <span className="absolute start-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-accent" />
                   )}
                   <Icon
                     className={cn(
@@ -56,7 +58,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     )}
                     strokeWidth={1.75}
                   />
-                  {label}
+                  {t(label)}
                 </>
               )}
             </NavLink>
@@ -69,21 +71,24 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-line bg-surface-2 text-[11px] font-semibold uppercase text-fg-muted">
               {session?.email?.[0] ?? 'U'}
             </div>
-            <span className="truncate text-xs text-fg-muted">{session?.email}</span>
+            <span dir="auto" className="truncate text-xs text-fg-muted">
+              {session?.email}
+            </span>
           </div>
           <button
             onClick={lock}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-fg-muted transition-colors duration-150 hover:bg-surface-3 hover:text-fg"
           >
             <Lock className="h-[18px] w-[18px]" strokeWidth={1.75} />
-            Lock vault
+            {t('common.lockVault')}
           </button>
           <button
             onClick={() => logout()}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-fg-muted transition-colors duration-150 hover:bg-surface-3 hover:text-fg"
           >
-            <LogOut className="h-[18px] w-[18px]" strokeWidth={1.75} />
-            Sign out
+            {/* Exit arrow points out of the reading direction, so it mirrors in RTL. */}
+            <LogOut className="h-[18px] w-[18px] rtl:-scale-x-100" strokeWidth={1.75} />
+            {t('common.signOut')}
           </button>
         </div>
       </aside>
@@ -101,7 +106,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <button
               onClick={lock}
               className="flex h-11 w-11 items-center justify-center rounded-lg text-fg-muted transition-colors hover:text-fg"
-              aria-label="Lock vault"
+              aria-label={t('common.lockVault')}
             >
               <Lock className="h-[18px] w-[18px]" strokeWidth={1.75} />
             </button>
@@ -122,7 +127,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               }
             >
               <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} />
-              {label}
+              {t(label)}
             </NavLink>
           ))}
         </nav>

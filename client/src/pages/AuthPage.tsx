@@ -6,13 +6,17 @@ import { GlassButton } from '../components/ui/GlassButton';
 import { GlassCard } from '../components/ui/GlassCard';
 import { GlassInput } from '../components/ui/GlassInput';
 import { useToast } from '../components/ui/Toast';
-import { api, ApiError } from '../lib/api';
+import { useErrorText } from '../i18n/errors';
+import { useI18n } from '../i18n/LanguageProvider';
+import { api } from '../lib/api';
 import { StrengthMeter } from '../components/StrengthMeter';
 import { Logo } from '../components/ui/Logo';
 
 export function AuthPage() {
   const { refresh } = useAuth();
   const toast = useToast();
+  const { t } = useI18n();
+  const errorText = useErrorText();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,7 +34,7 @@ export function AuthPage() {
       }
       await refresh();
     } catch (err) {
-      toast(err instanceof ApiError ? err.message : 'Something went wrong', 'error');
+      toast(errorText(err, 'errors.generic'), 'error');
     } finally {
       setBusy(false);
     }
@@ -51,14 +55,17 @@ export function AuthPage() {
             </div>
             <h1 className="text-2xl font-extrabold tracking-tight">Lockly</h1>
             <p className="mt-1 text-sm text-fg-muted">
-              {mode === 'login' ? 'Welcome back.' : 'Create your secure vault.'}
+              {mode === 'login' ? t('auth.welcomeBack') : t('auth.createVault')}
             </p>
           </div>
 
+          {/* Emails and passwords always read left to right, even in Arabic. */}
           <form onSubmit={submit} className="space-y-3">
             <GlassInput
-              label="Email"
+              label={t('auth.email')}
               type="email"
+              dir="ltr"
+              className="rtl:text-right"
               autoComplete="email"
               required
               value={email}
@@ -66,8 +73,10 @@ export function AuthPage() {
               placeholder="you@example.com"
             />
             <GlassInput
-              label={mode === 'register' ? 'Login password' : 'Password'}
+              label={mode === 'register' ? t('auth.loginPassword') : t('auth.password')}
               type="password"
+              dir="ltr"
+              className="rtl:text-right"
               autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
               required
               value={password}
@@ -77,13 +86,15 @@ export function AuthPage() {
             {mode === 'register' && (
               <div>
                 <GlassInput
-                  label="Master password (encrypts your vault)"
+                  label={t('auth.masterPasswordEncrypts')}
                   type="password"
+                  dir="ltr"
+                  className="rtl:text-right"
                   autoComplete="new-password"
                   required
                   value={masterPassword}
                   onChange={(e) => setMasterPassword(e.target.value)}
-                  placeholder="At least 10 characters"
+                  placeholder={t('auth.masterPlaceholder')}
                 />
                 <StrengthMeter password={masterPassword} />
               </div>
@@ -91,7 +102,7 @@ export function AuthPage() {
 
             <GlassButton type="submit" className="mt-2 w-full" disabled={busy}>
               {mode === 'login' ? <Lock className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-              {busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
+              {busy ? t('common.pleaseWait') : mode === 'login' ? t('auth.signIn') : t('auth.createAccount')}
             </GlassButton>
           </form>
 
@@ -99,9 +110,7 @@ export function AuthPage() {
             className="mt-5 w-full text-center text-sm text-fg-muted transition hover:text-fg"
             onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
           >
-            {mode === 'login'
-              ? "Don't have an account? Create one"
-              : 'Already have an account? Sign in'}
+            {mode === 'login' ? t('auth.noAccount') : t('auth.haveAccount')}
           </button>
         </GlassCard>
       </motion.div>

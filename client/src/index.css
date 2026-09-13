@@ -71,6 +71,18 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* Arabic: Plex Sans Arabic pairs with Inter; system Arabic fonts cover offline
+   devices. Browsers only download the face when Arabic text is on screen. */
+:lang(ar) body {
+  font-family: 'IBM Plex Sans Arabic', 'Inter', 'Noto Sans Arabic', 'Segoe UI', Tahoma, system-ui,
+    sans-serif;
+}
+
+/* Negative tracking (tracking-tight) breaks Arabic letter joining. */
+:lang(ar) * {
+  letter-spacing: 0 !important;
+}
+
 :focus-visible {
   outline: 2px solid rgb(var(--accent-fg));
   outline-offset: 2px;

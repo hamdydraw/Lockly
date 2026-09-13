@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Eye, EyeOff, Trash2, Wand2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { api, ApiError } from '../lib/api';
+import { useErrorText } from '../i18n/errors';
+import { useI18n } from '../i18n/LanguageProvider';
+import { api } from '../lib/api';
 import { copyText } from '../lib/clipboard';
 import type { ItemInput, ItemType } from '../lib/types';
 import { PasswordGenerator } from './PasswordGenerator';
@@ -11,12 +13,7 @@ import { GlassInput } from './ui/GlassInput';
 import { GlassModal } from './ui/GlassModal';
 import { useToast } from './ui/Toast';
 
-const TYPES: { value: ItemType; label: string }[] = [
-  { value: 'LOGIN', label: 'Login' },
-  { value: 'CARD', label: 'Card' },
-  { value: 'SECURE_NOTE', label: 'Secure note' },
-  { value: 'OTHER', label: 'Other' },
-];
+const TYPES: ItemType[] = ['LOGIN', 'CARD', 'SECURE_NOTE', 'OTHER'];
 
 interface Props {
   open: boolean;
@@ -36,6 +33,8 @@ const EMPTY: ItemInput = {
 export function ItemModal({ open, onClose, itemId }: Props) {
   const qc = useQueryClient();
   const toast = useToast();
+  const { t } = useI18n();
+  const errorText = useErrorText();
   const [form, setForm] = useState<ItemInput>(EMPTY);
   const [reveal, setReveal] = useState(false);
   const [showGen, setShowGen] = useState(false);
@@ -74,18 +73,17 @@ export function ItemModal({ open, onClose, itemId }: Props) {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ['items'] });
       if (itemId) await qc.invalidateQueries({ queryKey: ['item', itemId] });
-      toast(editing ? 'Item updated' : 'Item saved', 'success');
+      toast(editing ? t('item.updated') : t('item.saved'), 'success');
       onClose();
     },
-    onError: (err) =>
-      toast(err instanceof ApiError ? err.message : 'Save failed', 'error'),
+    onError: (err) => toast(errorText(err, 'errors.saveFailed'), 'error'),
   });
 
   const remove = useMutation({
     mutationFn: () => api.deleteItem(itemId!),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ['items'] });
-      toast('Item deleted', 'success');
+      toast(t('item.deleted'), 'success');
       onClose();
     },
   });
@@ -94,10 +92,10 @@ export function ItemModal({ open, onClose, itemId }: Props) {
     const pw = form.secret.password ?? '';
     if (!pw) return;
     if (!(await copyText(pw))) {
-      toast('Could not access the clipboard', 'error');
+      toast(t('errors.clipboard'), 'error');
       return;
     }
-    toast('Password copied — clears in 20s', 'info');
+    toast(t('item.copied'), 'info');
     // Auto-clear clipboard after 20s for safety.
     setTimeout(() => void copyText(''), 20_000);
   }
@@ -106,7 +104,7 @@ export function ItemModal({ open, onClose, itemId }: Props) {
     setForm((f) => ({ ...f, secret: { ...f.secret, [k]: v } }));
 
   return (
-    <GlassModal open={open} onClose={onClose} title={editing ? 'Edit item' : 'New item'}>
+    <GlassModal open={open} onClose={onClose} title={editing ? t('item.editTitle') : t('item.newTitle')}>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -115,47 +113,55 @@ export function ItemModal({ open, onClose, itemId }: Props) {
         className="space-y-3"
       >
         <div className="flex flex-wrap gap-2">
-          {TYPES.map((t) => (
+          {TYPES.map((type) => (
             <button
-              key={t.value}
+              key={type}
               type="button"
-              onClick={() => setForm((f) => ({ ...f, type: t.value }))}
+              onClick={() => setForm((f) => ({ ...f, type }))}
               className={
                 'rounded-lg px-3 py-1.5 text-xs font-medium transition ' +
-                (form.type === t.value
+                (form.type === type
                   ? 'bg-accent text-fg-on-accent'
                   : 'border border-line bg-surface-2 text-fg-muted hover:text-fg')
               }
             >
-              {t.label}
+              {t(`vault.types.${type}`)}
             </button>
           ))}
         </div>
 
+        {/* Free-text fields take the direction of what the user types. */}
         <GlassInput
-          label="Title"
+          label={t('item.title')}
+          dir="auto"
           required
           value={form.title}
           onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-          placeholder="e.g. My Bank"
+          placeholder={t('item.titlePlaceholder')}
         />
 
         <div className="grid grid-cols-2 gap-3">
           <GlassInput
-            label="Username"
+            label={t('item.username')}
+            dir="auto"
             value={form.username ?? ''}
             onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
           />
           <GlassInput
-            label="Folder"
+            label={t('item.folder')}
+            dir="auto"
             value={form.folder ?? ''}
             onChange={(e) => setForm((f) => ({ ...f, folder: e.target.value }))}
-            placeholder="e.g. Banking"
+            placeholder={t('item.folderPlaceholder')}
           />
         </div>
 
+        {/* URLs always read left to right. */}
         <GlassInput
-          label="URL"
+          label={t('item.url')}
+          dir="ltr"
+          inputMode="url"
+          className="rtl:text-right"
           value={form.url ?? ''}
           onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
           placeholder="https://…"
@@ -163,33 +169,36 @@ export function ItemModal({ open, onClose, itemId }: Props) {
 
         {/* Password / secret value */}
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-fg-muted">Password</span>
+          <span className="mb-1.5 block text-sm font-medium text-fg-muted">{t('item.password')}</span>
           <div className="flex gap-2">
             <div className="relative flex-1">
               <input
                 type={reveal ? 'text' : 'password'}
+                // Passwords never mirror; the reveal button still sits at the inline end.
+                dir="ltr"
                 value={form.secret.password ?? ''}
                 onChange={(e) => setSecret('password', e.target.value)}
-                className="w-full rounded-xl border border-line-strong bg-surface-2 px-3.5 py-2.5 pr-10 text-fg placeholder:text-fg-subtle focus:border-accent-fg focus:outline-none"
+                // i18n-allow-physical: the input is dir="ltr", so its padding follows the page direction explicitly.
+                className="w-full rounded-xl border border-line-strong bg-surface-2 px-3.5 py-2.5 pr-10 text-fg placeholder:text-fg-subtle focus:border-accent-fg focus:outline-none rtl:pl-10 rtl:pr-3.5 rtl:text-right"
                 placeholder="••••••••"
               />
               <button
                 type="button"
                 onClick={() => setReveal((r) => !r)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-fg-muted hover:text-fg"
-                aria-label={reveal ? 'Hide' : 'Reveal'}
+                className="absolute end-2.5 top-1/2 -translate-y-1/2 text-fg-muted hover:text-fg"
+                aria-label={reveal ? t('item.hide') : t('item.reveal')}
               >
                 {reveal ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            <GlassButton type="button" variant="ghost" onClick={copyPassword} aria-label="Copy">
+            <GlassButton type="button" variant="ghost" onClick={copyPassword} aria-label={t('item.copy')}>
               <Copy className="h-4 w-4" />
             </GlassButton>
             <GlassButton
               type="button"
               variant="ghost"
               onClick={() => setShowGen((s) => !s)}
-              aria-label="Generate"
+              aria-label={t('item.generate')}
             >
               <Wand2 className="h-4 w-4" />
             </GlassButton>
@@ -208,13 +217,14 @@ export function ItemModal({ open, onClose, itemId }: Props) {
         </div>
 
         <label className="block">
-          <span className="mb-1.5 block text-sm font-medium text-fg-muted">Notes</span>
+          <span className="mb-1.5 block text-sm font-medium text-fg-muted">{t('item.notes')}</span>
           <textarea
+            dir="auto"
             value={form.secret.notes ?? ''}
             onChange={(e) => setSecret('notes', e.target.value)}
             rows={3}
             className="w-full rounded-xl border border-line-strong bg-surface-2 px-3.5 py-2.5 text-fg placeholder:text-fg-subtle focus:border-accent-fg focus:outline-none"
-            placeholder="Anything else to remember…"
+            placeholder={t('item.notesPlaceholder')}
           />
         </label>
 
@@ -226,17 +236,17 @@ export function ItemModal({ open, onClose, itemId }: Props) {
               className="inline-flex items-center gap-1.5 text-sm text-danger transition hover:text-danger/80"
             >
               <Trash2 className="h-4 w-4" />
-              Delete
+              {t('common.delete')}
             </button>
           ) : (
             <span />
           )}
           <div className="flex gap-2">
             <GlassButton type="button" variant="ghost" onClick={onClose}>
-              Cancel
+              {t('common.cancel')}
             </GlassButton>
             <GlassButton type="submit" disabled={save.isPending}>
-              {save.isPending ? 'Saving…' : 'Save'}
+              {save.isPending ? t('common.saving') : t('common.save')}
             </GlassButton>
           </div>
         </div>

@@ -1,8 +1,18 @@
+import { useI18n, type MessageKey } from '../i18n/LanguageProvider';
 import { estimateStrength } from '../lib/password';
+
+const LABELS: MessageKey[] = [
+  'strength.veryWeak',
+  'strength.weak',
+  'strength.fair',
+  'strength.strong',
+  'strength.veryStrong',
+];
 
 /** Strength bar coloured by score, so a weak password looks weak (DESIGN.md §3.3). */
 export function StrengthMeter({ password }: { password: string }) {
-  const { score, label } = estimateStrength(password);
+  const { t } = useI18n();
+  const { score, empty } = estimateStrength(password);
   const pct = (score / 4) * 100;
   const tone = score <= 1 ? 'bg-danger' : score === 2 ? 'bg-warning' : 'bg-success';
   return (
@@ -13,7 +23,9 @@ export function StrengthMeter({ password }: { password: string }) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="mt-1 block text-xs text-fg-muted">{label}</span>
+      <span className="mt-1 block text-xs text-fg-muted">
+        {empty ? t('strength.empty') : t(LABELS[score]!)}
+      </span>
     </div>
   );
 }

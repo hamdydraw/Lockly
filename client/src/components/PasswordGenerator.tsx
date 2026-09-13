@@ -1,11 +1,13 @@
 import { RefreshCw } from 'lucide-react';
 import { useState } from 'react';
+import { useI18n } from '../i18n/LanguageProvider';
 import { generatePassword, type GenOptions } from '../lib/password';
 import { GlassButton } from './ui/GlassButton';
 
 const DEFAULTS: GenOptions = { length: 20, lower: true, upper: true, digits: true, symbols: true };
 
 export function PasswordGenerator({ onGenerate }: { onGenerate: (pw: string) => void }) {
+  const { t } = useI18n();
   const [opts, setOpts] = useState<GenOptions>(DEFAULTS);
 
   const toggle = (k: keyof GenOptions) =>
@@ -14,7 +16,7 @@ export function PasswordGenerator({ onGenerate }: { onGenerate: (pw: string) => 
   return (
     <div className="rounded-xl border border-line-strong bg-surface-2 p-3">
       <div className="mb-2 flex items-center justify-between text-xs text-fg-muted">
-        <span>Length: {opts.length}</span>
+        <span>{t('generator.length', { count: opts.length })}</span>
         <input
           type="range"
           min={8}
@@ -33,7 +35,7 @@ export function PasswordGenerator({ onGenerate }: { onGenerate: (pw: string) => 
               onChange={() => toggle(k)}
               className="accent-accent"
             />
-            {k}
+            {t(`generator.${k}`)}
           </label>
         ))}
       </div>
@@ -44,7 +46,7 @@ export function PasswordGenerator({ onGenerate }: { onGenerate: (pw: string) => 
         onClick={() => onGenerate(generatePassword(opts))}
       >
         <RefreshCw className="h-4 w-4" />
-        Generate password
+        {t('generator.generate')}
       </GlassButton>
     </div>
   );

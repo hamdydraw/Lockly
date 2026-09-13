@@ -10,6 +10,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useErrorText } from '../i18n/errors';
+import { useI18n } from '../i18n/LanguageProvider';
 import { api } from '../lib/api';
 import { isNative } from '../lib/config';
 import { saveBlob } from '../lib/download';
@@ -26,12 +28,6 @@ import { useToast } from './ui/Toast';
 
 const MAX_TABLE_ROWS = 1000;
 const MAX_TABLE_COLS = 100;
-
-function humanSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 interface FilePreviewProps {
   file: FileMeta | null;
@@ -53,8 +49,10 @@ interface FilePreviewProps {
  */
 export function FilePreview({ file, onClose, siblings, onNavigate }: FilePreviewProps) {
   const toast = useToast();
+  const { t, formatBytes, dir } = useI18n();
+  const errorText = useErrorText();
   const [blob, setBlob] = useState<Blob | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const kind = file ? previewKind(file.filename, file.mimeType) : null;
 
@@ -75,7 +73,7 @@ export function FilePreview({ file, onClose, siblings, onNavigate }: FilePreview
   // Fetch on open; discard on close or when a different file is chosen.
   useEffect(() => {
     setBlob(null);
-    setError(null);
+    setLoadFailed(false);
     if (!file) return;
     let cancelled = false;
     api
@@ -84,7 +82,7 @@ export function FilePreview({ file, onClose, siblings, onNavigate }: FilePreview
         if (!cancelled) setBlob(b);
       })
       .catch(() => {
-        if (!cancelled) setError('Could not load this file. Try downloading it instead.');
+        if (!cancelled) setLoadFailed(true);
       });
     return () => {
       cancelled = true;
@@ -110,8 +108,11 @@ export function FilePreview({ file, onClose, siblings, onNavigate }: FilePreview
       // Arrow keys page only for kinds drawn whole; text and sheet panes need
       // the arrows for scrolling, so those page from the buttons alone.
       if (!kind || !needsObjectUrl(kind)) return;
-      if (e.key === 'ArrowRight') step(1);
-      else if (e.key === 'ArrowLeft') step(-1);
+      // Arrows follow what is on screen: in RTL the next file is to the left.
+      const nextKey = dir === 'rtl' ? 'ArrowLeft' : 'ArrowRight';
+      const previousKey = dir === 'rtl' ? 'ArrowRight' : 'ArrowLeft';
+      if (e.key === nextKey) step(1);
+      else if (e.key === previousKey) step(-1);
     };
     window.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
@@ -120,7 +121,7 @@ export function FilePreview({ file, onClose, siblings, onNavigate }: FilePreview
       window.removeEventListener('keydown', onKey);
       document.body.style.overflow = prev;
     };
-  }, [file, onClose, kind, step]);
+  }, [file, onClose, kind, step, dir]);
 
   async function download() {
     if (!file) return;
@@ -128,8 +129,8 @@ export function FilePreview({ file, onClose, siblings, onNavigate }: FilePreview
       // Reuse the bytes already in memory instead of a second decrypt round-trip.
       if (blob) await saveBlob(blob, file.filename);
       else await api.downloadFile(file.id, file.filename);
-    } catch {
-      toast('Download failed', 'error');
+    } catch (err) {
+      toast(errorText(err, 'errors.downloadFailed'), 'error');
     }
   }
 
@@ -144,7 +145,7 @@ export function FilePreview({ file, onClose, siblings, onNavigate }: FilePreview
           transition={{ duration: 0.15 }}
           role="dialog"
           aria-modal="true"
-          aria-label={`Preview of ${file.filename}`}
+          aria-label={t('preview.dialogLabel', { name: file.filename })}
         >
           {/* Header */}
           <div className="flex items-center gap-3 border-b border-line bg-surface-1 px-4 py-3">
@@ -154,23 +155,23 @@ export function FilePreview({ file, onClose, siblings, onNavigate }: FilePreview
                 {file.filename}
               </p>
               <p className="truncate text-[12px] text-fg-muted">
-                {canPage && `${index + 1} of ${list!.length} · `}
-                {humanSize(file.sizeBytes)} · Decrypted in this tab only
+                {canPage && `${t('preview.position', { index: index + 1, total: list!.length })} · `}
+                {formatBytes(file.sizeBytes)} · {t('preview.decryptedHere')}
               </p>
             </div>
             <button
               onClick={download}
               className="flex h-9 w-9 items-center justify-center rounded-lg text-fg-muted transition-colors duration-150 hover:bg-surface-3 hover:text-accent-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/40"
-              aria-label="Download"
-              title="Download"
+              aria-label={t('common.download')}
+              title={t('common.download')}
             >
               <Download className="h-[18px] w-[18px]" strokeWidth={1.75} />
             </button>
             <button
               onClick={onClose}
               className="flex h-9 w-9 items-center justify-center rounded-lg text-fg-muted transition-colors duration-150 hover:bg-surface-3 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/40"
-              aria-label="Close preview"
-              title="Close (Esc)"
+              aria-label={t('preview.close')}
+              title={t('preview.closeHint')}
               autoFocus
             >
               <X className="h-5 w-5" strokeWidth={2} />
@@ -185,12 +186,16 @@ export function FilePreview({ file, onClose, siblings, onNavigate }: FilePreview
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.2 }}
             >
-              {error ? (
-                <Notice icon={AlertCircle} title="Preview unavailable" body={error} />
+              {loadFailed ? (
+                <Notice
+                  icon={AlertCircle}
+                  title={t('preview.unavailableTitle')}
+                  body={t('preview.loadFailed')}
+                />
               ) : !blob || !kind ? (
                 <div className="flex items-center gap-2 text-sm text-fg-muted">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Decrypting…
+                  {t('preview.decrypting')}
                 </div>
               ) : (
                 <div className="h-full w-full" onClick={(e) => e.stopPropagation()}>
@@ -201,8 +206,8 @@ export function FilePreview({ file, onClose, siblings, onNavigate }: FilePreview
 
             {canPage && (
               <>
-                <PageButton side="left" onClick={() => step(-1)} />
-                <PageButton side="right" onClick={() => step(1)} />
+                <PageButton side="start" onClick={() => step(-1)} />
+                <PageButton side="end" onClick={() => step(1)} />
               </>
             )}
           </div>
@@ -212,9 +217,10 @@ export function FilePreview({ file, onClose, siblings, onNavigate }: FilePreview
   );
 }
 
-/** Edge-anchored arrow for stepping through the folder. */
-function PageButton({ side, onClick }: { side: 'left' | 'right'; onClick: () => void }) {
-  const Icon = side === 'left' ? ChevronLeft : ChevronRight;
+/** Edge-anchored arrow for stepping through the folder: start = previous, end = next. */
+function PageButton({ side, onClick }: { side: 'start' | 'end'; onClick: () => void }) {
+  const { t } = useI18n();
+  const Icon = side === 'start' ? ChevronLeft : ChevronRight;
   return (
     <button
       onClick={(e) => {
@@ -223,12 +229,13 @@ function PageButton({ side, onClick }: { side: 'left' | 'right'; onClick: () => 
       }}
       className={
         'absolute top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-surface-1/80 text-fg-muted backdrop-blur-sm transition-colors duration-150 hover:bg-surface-1 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/40 ' +
-        (side === 'left' ? 'left-2 sm:left-4' : 'right-2 sm:right-4')
+        (side === 'start' ? 'start-2 sm:start-4' : 'end-2 sm:end-4')
       }
-      aria-label={side === 'left' ? 'Previous file' : 'Next file'}
-      title={side === 'left' ? 'Previous (←)' : 'Next (→)'}
+      aria-label={side === 'start' ? t('preview.previous') : t('preview.next')}
+      title={side === 'start' ? t('preview.previousHint') : t('preview.nextHint')}
     >
-      <Icon className="h-6 w-6" strokeWidth={2} />
+      {/* Chevrons point toward their edge, so they mirror with the layout. */}
+      <Icon className="h-6 w-6 rtl:-scale-x-100" strokeWidth={2} />
     </button>
   );
 }
@@ -250,6 +257,7 @@ function Renderer({
   file: FileMeta;
   onOpenWith: () => void;
 }) {
+  const { t } = useI18n();
   switch (kind) {
     case 'image':
       return (
@@ -267,9 +275,9 @@ function Renderer({
         return (
           <Notice
             icon={ExternalLink}
-            title="Open in a PDF app"
-            body="This device cannot show PDFs inside Lockly. Open it with another app instead; the decrypted copy is kept in the app cache only."
-            action={{ label: 'Open with…', onClick: onOpenWith }}
+            title={t('preview.openInPdfTitle')}
+            body={t('preview.openInPdfBody')}
+            action={{ label: t('preview.openWith'), onClick: onOpenWith }}
           />
         );
       }
@@ -284,7 +292,9 @@ function Renderer({
     case 'audio':
       return (
         <div className="w-full max-w-lg rounded-xl border border-line bg-surface-2 p-6">
-          <p className="mb-4 truncate text-center text-sm text-fg-muted">{file.filename}</p>
+          <p dir="auto" className="mb-4 truncate text-center text-sm text-fg-muted">
+            {file.filename}
+          </p>
           <audio src={url ?? undefined} controls className="w-full" />
         </div>
       );
@@ -341,12 +351,19 @@ function TextRenderer({ blob, filename }: { blob: Blob; filename: string }) {
   return (
     <Pane>
       <div className="flex font-mono text-[12.5px] leading-[1.6]">
-        <ol className="select-none border-r border-line pr-3 text-right text-fg-subtle" aria-hidden>
+        <ol className="select-none border-e border-line pe-3 text-end text-fg-subtle" aria-hidden>
           {lines.map((_, i) => (
             <li key={i}>{i + 1}</li>
           ))}
         </ol>
-        <pre className="min-w-0 flex-1 whitespace-pre-wrap break-words pl-3 text-fg">{shown}</pre>
+        {/* Each line takes the direction of its own content, whatever the UI language. */}
+        <pre
+          dir="auto"
+          style={{ unicodeBidi: 'plaintext' }}
+          className="min-w-0 flex-1 whitespace-pre-wrap break-words px-3 text-fg"
+        >
+          {shown}
+        </pre>
       </div>
     </Pane>
   );
@@ -370,15 +387,16 @@ interface ParsedSheet {
 }
 
 function SheetRenderer({ blob }: { blob: Blob }) {
+  const { t } = useI18n();
   const [sheets, setSheets] = useState<ParsedSheet[] | null>(null);
   const [active, setActive] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const [unreadable, setUnreadable] = useState(false);
   const tooLarge = blob.size > MAX_SHEET_PREVIEW_BYTES;
 
   useEffect(() => {
     setSheets(null);
     setActive(0);
-    setError(null);
+    setUnreadable(false);
     if (tooLarge) return;
     let cancelled = false;
     (async () => {
@@ -398,9 +416,7 @@ function SheetRenderer({ blob }: { blob: Blob }) {
         });
         if (!cancelled) setSheets(parsed);
       } catch {
-        if (!cancelled) {
-          setError('This spreadsheet could not be read. It may be password-protected or corrupted.');
-        }
+        if (!cancelled) setUnreadable(true);
       }
     })();
     return () => {
@@ -409,10 +425,14 @@ function SheetRenderer({ blob }: { blob: Blob }) {
   }, [blob, tooLarge]);
 
   if (tooLarge) return <TooLarge limit={MAX_SHEET_PREVIEW_BYTES} />;
-  if (error) return <Notice icon={AlertCircle} title="Cannot read spreadsheet" body={error} />;
-  if (sheets === null) return <Spinner label="Reading workbook…" />;
+  if (unreadable) {
+    return (
+      <Notice icon={AlertCircle} title={t('preview.cannotReadSheet')} body={t('preview.sheetUnreadable')} />
+    );
+  }
+  if (sheets === null) return <Spinner label={t('preview.readingWorkbook')} />;
   if (sheets.length === 0) {
-    return <Notice icon={AlertCircle} title="Empty workbook" body="This file has no sheets." />;
+    return <Notice icon={AlertCircle} title={t('preview.emptyWorkbook')} body={t('preview.noSheets')} />;
   }
 
   const sheet = sheets[Math.min(active, sheets.length - 1)]!;
@@ -424,6 +444,7 @@ function SheetRenderer({ blob }: { blob: Blob }) {
             {sheets.map((s, i) => (
               <button
                 key={s.name}
+                dir="auto"
                 onClick={() => setActive(i)}
                 className={
                   'shrink-0 rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-fg/40 ' +
@@ -446,12 +467,13 @@ function SheetRenderer({ blob }: { blob: Blob }) {
 
 /** Spreadsheet-style table with row numbers and A/B/C column letters. */
 function Grid({ rows }: { rows: string[][] }) {
+  const { t } = useI18n();
   const cols = Math.min(MAX_TABLE_COLS, rows.reduce((m, r) => Math.max(m, r.length), 0));
   const shown = rows.slice(0, MAX_TABLE_ROWS);
   const truncated = rows.length > MAX_TABLE_ROWS || rows.some((r) => r.length > MAX_TABLE_COLS);
 
   if (rows.length === 0) {
-    return <p className="p-6 text-center text-sm text-fg-muted">This sheet is empty.</p>;
+    return <p className="p-6 text-center text-sm text-fg-muted">{t('preview.emptySheet')}</p>;
   }
 
   return (
@@ -459,11 +481,11 @@ function Grid({ rows }: { rows: string[][] }) {
       <table className="border-collapse font-mono text-[12px] leading-tight">
         <thead className="sticky top-0 z-10">
           <tr>
-            <th className="sticky left-0 z-20 border-b border-r border-line bg-surface-1 px-2 py-1.5 text-right text-fg-subtle" />
+            <th className="sticky start-0 z-20 border-b border-e border-line bg-surface-1 px-2 py-1.5 text-end text-fg-subtle" />
             {Array.from({ length: cols }, (_, c) => (
               <th
                 key={c}
-                className="border-b border-r border-line bg-surface-1 px-3 py-1.5 text-center font-medium text-fg-muted"
+                className="border-b border-e border-line bg-surface-1 px-3 py-1.5 text-center font-medium text-fg-muted"
               >
                 {columnLetter(c)}
               </th>
@@ -473,16 +495,17 @@ function Grid({ rows }: { rows: string[][] }) {
         <tbody>
           {shown.map((r, i) => (
             <tr key={i} className="odd:bg-fg/[0.02] hover:bg-surface-3">
-              <td className="sticky left-0 z-10 border-b border-r border-line bg-surface-1 px-2 py-1 text-right text-fg-subtle">
+              <td className="sticky start-0 z-10 border-b border-e border-line bg-surface-1 px-2 py-1 text-end text-fg-subtle">
                 {i + 1}
               </td>
               {Array.from({ length: cols }, (_, c) => (
                 <td
                   key={c}
-                  className="max-w-[320px] truncate border-b border-r border-line/60 px-3 py-1 text-fg"
+                  className="max-w-[320px] truncate border-b border-e border-line/60 px-3 py-1 text-fg"
                   title={r[c] ?? ''}
                 >
-                  {r[c] ?? ''}
+                  {/* Cell text keeps its own direction; the grid follows the UI. */}
+                  <bdi dir="auto">{r[c] ?? ''}</bdi>
                 </td>
               ))}
             </tr>
@@ -490,9 +513,8 @@ function Grid({ rows }: { rows: string[][] }) {
         </tbody>
       </table>
       {truncated && (
-        <p className="sticky left-0 border-t border-line bg-surface-1 px-3 py-2 text-[12px] text-fg-muted">
-          Showing the first {MAX_TABLE_ROWS.toLocaleString()} rows and {MAX_TABLE_COLS} columns.
-          Download the file for the full data.
+        <p className="sticky start-0 border-t border-line bg-surface-1 px-3 py-2 text-[12px] text-fg-muted">
+          {t('preview.truncated', { rows: MAX_TABLE_ROWS, cols: MAX_TABLE_COLS })}
         </p>
       )}
     </>
@@ -523,21 +545,23 @@ function Pane({ children, footer }: { children: ReactNode; footer?: ReactNode })
   );
 }
 
-function Spinner({ label = 'Rendering…' }: { label?: string }) {
+function Spinner({ label }: { label?: string }) {
+  const { t } = useI18n();
   return (
     <div className="flex h-full items-center justify-center gap-2 text-sm text-fg-muted">
       <Loader2 className="h-4 w-4 animate-spin" />
-      {label}
+      {label ?? t('preview.rendering')}
     </div>
   );
 }
 
 function TooLarge({ limit }: { limit: number }) {
+  const { t, formatBytes } = useI18n();
   return (
     <Notice
       icon={AlertCircle}
-      title="Too large to preview"
-      body={`Files of this type over ${humanSize(limit)} are not rendered in the browser. Download it to open locally.`}
+      title={t('preview.tooLargeTitle')}
+      body={t('preview.tooLargeBody', { size: formatBytes(limit) })}
     />
   );
 }
