@@ -93,15 +93,28 @@ export function checklistProgress(lines: BodyLine[]): { done: number; total: num
 
 // ---- Search -----------------------------------------------------------------
 
-/** Case-insensitive match against title and body — everything is already decrypted. */
-export function matchesQuery(note: { title: string; body: string }, q: string): boolean {
+/**
+ * Case-insensitive match against title and body — everything is already decrypted.
+ * A hidden note matches on its title only, so search cannot be used to probe
+ * masked text one character at a time.
+ */
+export function matchesQuery(
+  note: { title: string; body: string; hidden: boolean },
+  q: string,
+): boolean {
   const needle = q.trim().toLocaleLowerCase();
   if (!needle) return true;
-  return (
-    note.title.toLocaleLowerCase().includes(needle) ||
-    note.body.toLocaleLowerCase().includes(needle)
-  );
+  if (note.title.toLocaleLowerCase().includes(needle)) return true;
+  return !note.hidden && note.body.toLocaleLowerCase().includes(needle);
 }
+
+/** Password-style stand-in for a hidden body: a row of dots per line, length capped. */
+export function maskBody(body: string): string[] {
+  return body.split('\n').map((line) => '•'.repeat(Math.min(line.trim().length, 24)));
+}
+
+/** How long a revealed hidden note stays readable on the board before masking again. */
+export const REVEAL_MS = 30_000;
 
 // ---- Relative time ----------------------------------------------------------
 

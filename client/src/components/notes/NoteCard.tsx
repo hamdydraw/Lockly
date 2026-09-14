@@ -1,12 +1,20 @@
 import { motion } from 'framer-motion';
-import { Copy, Pin, PinOff, Trash2, type LucideIcon } from 'lucide-react';
-import { useMemo, type MouseEvent } from 'react';
+import { Copy, Eye, EyeOff, Pin, PinOff, Trash2, type LucideIcon } from 'lucide-react';
+import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { useI18n } from '../../i18n/LanguageProvider';
 import { LANGUAGES } from '../../i18n/languages';
-import { checklistProgress, formatRelative, INK_BG, INK_TEXT, PAPER, parseLines } from '../../lib/notes';
+import {
+  checklistProgress,
+  formatRelative,
+  INK_BG,
+  INK_TEXT,
+  PAPER,
+  parseLines,
+  REVEAL_MS,
+} from '../../lib/notes';
 import type { Note } from '../../lib/types';
 import { cn } from '../ui/cn';
-import { NoteBody } from './NoteBody';
+import { MaskedBody, NoteBody } from './NoteBody';
 
 interface Props {
   note: Note;
@@ -20,12 +28,28 @@ interface Props {
 /**
  * One sticky on the board. The whole card opens the editor; the pin, copy and
  * delete controls, and checklist boxes, stop the click so they act in place.
+ * A hidden note shows dots instead of text until revealed, and masks itself
+ * again after REVEAL_MS.
  */
 export function NoteCard({ note, onOpen, onTogglePin, onToggleCheck, onCopy, onDelete }: Props) {
   const { t, lang } = useI18n();
   const lines = useMemo(() => parseLines(note.body), [note.body]);
   const progress = checklistProgress(lines);
   const when = formatRelative(LANGUAGES[lang].locale, note.updatedAt);
+  const [revealed, setRevealed] = useState(false);
+  const masked = note.hidden && !revealed;
+
+  useEffect(() => {
+    if (!revealed) return;
+    const id = window.setTimeout(() => setRevealed(false), REVEAL_MS);
+    return () => window.clearTimeout(id);
+  }, [revealed]);
+
+  // Re-mask as soon as the note is marked hidden (e.g. from the editor).
+  useEffect(() => {
+    if (!note.hidden) setRevealed(false);
+  }, [note.hidden]);
+
   const revealOnHover =
     'opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 max-md:opacity-100';
 
@@ -68,7 +92,9 @@ export function NoteCard({ note, onOpen, onTogglePin, onToggleCheck, onCopy, onD
           {note.title}
         </h3>
       )}
-      {note.body ? (
+      {masked ? (
+        note.body && <MaskedBody body={note.body} color={note.color} onReveal={() => setRevealed(true)} />
+      ) : note.body ? (
         <NoteBody body={note.body} color={note.color} onToggle={onToggleCheck} clamp />
       ) : (
         !note.title && <p className="text-sm italic text-fg-subtle">{t('notes.untitled')}</p>
@@ -77,7 +103,7 @@ export function NoteCard({ note, onOpen, onTogglePin, onToggleCheck, onCopy, onD
       <div className="mt-3 flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2 text-[12px] text-fg-subtle">
           <span className="truncate">{t('notes.edited', { when })}</span>
-          {progress && (
+          {progress && !masked && (
             <span
               className={cn(
                 'shrink-0 rounded-full bg-fg/[0.06] px-1.5 py-0.5 font-medium tabular-nums',
@@ -87,10 +113,31 @@ export function NoteCard({ note, onOpen, onTogglePin, onToggleCheck, onCopy, onD
               {t('notes.checklistProgress', { done: progress.done, total: progress.total })}
             </span>
           )}
+          {note.hidden && (
+            <span
+              className={cn(
+                'inline-flex shrink-0 items-center gap-1 rounded-full bg-fg/[0.06] px-1.5 py-0.5 font-medium',
+                INK_TEXT[note.color],
+              )}
+            >
+              <EyeOff className="h-3 w-3" strokeWidth={2} />
+              {revealed ? t('notes.revealsAgain', { seconds: REVEAL_MS / 1000 }) : t('notes.hidden')}
+            </span>
+          )}
         </div>
-        <div className={cn('flex shrink-0 items-center gap-0.5', revealOnHover)}>
-          <Action label={t('notes.copyBody')} icon={Copy} onClick={onCopy} />
-          <Action label={t('common.delete')} icon={Trash2} onClick={onDelete} danger />
+        <div className="flex shrink-0 items-center gap-0.5">
+          {note.hidden && (
+            <Action
+              label={revealed ? t('notes.conceal') : t('notes.reveal')}
+              icon={revealed ? EyeOff : Eye}
+              onClick={() => setRevealed((r) => !r)}
+              className={revealed ? INK_TEXT[note.color] : undefined}
+            />
+          )}
+          <div className={cn('flex items-center gap-0.5', revealOnHover)}>
+            <Action label={t('notes.copyBody')} icon={Copy} onClick={onCopy} />
+            <Action label={t('common.delete')} icon={Trash2} onClick={onDelete} danger />
+          </div>
         </div>
       </div>
     </motion.div>

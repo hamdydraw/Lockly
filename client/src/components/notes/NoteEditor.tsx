@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertCircle, Check, ListChecks, Loader2, Pin, Trash2, X } from 'lucide-react';
+import { AlertCircle, Check, EyeOff, ListChecks, Loader2, Pin, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../i18n/LanguageProvider';
 import { LANGUAGES } from '../../i18n/languages';
@@ -8,6 +8,7 @@ import type { Note, NoteColor, NoteInput } from '../../lib/types';
 import { cn } from '../ui/cn';
 import { GlassButton } from '../ui/GlassButton';
 import { ColorSwatches } from './ColorSwatches';
+import { MaskedBody } from './NoteBody';
 import { checklistKeyDown, insertChecklistItem, useAutoGrow } from './textarea';
 
 interface Props {
@@ -35,6 +36,7 @@ interface Draft {
   body: string;
   color: NoteColor;
   pinned: boolean;
+  hidden: boolean;
 }
 
 type Status = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
@@ -48,8 +50,12 @@ function Sheet({ note, onClose, onSave, onRequestDelete }: Props & { note: Note 
     body: note.body,
     color: note.color,
     pinned: note.pinned,
+    hidden: note.hidden,
   });
   const [status, setStatus] = useState<Status>('idle');
+  // A hidden note opens masked; revealing is a deliberate click and lasts until close.
+  const [revealed, setRevealed] = useState(!note.hidden);
+  const masked = draft.hidden && !revealed;
   const lastSaved = useRef<Draft>(draft);
   const draftRef = useRef(draft);
   draftRef.current = draft;
@@ -69,6 +75,7 @@ function Sheet({ note, onClose, onSave, onRequestDelete }: Props & { note: Note 
     if (current.body !== prev.body) patch.body = current.body;
     if (current.color !== prev.color) patch.color = current.color;
     if (current.pinned !== prev.pinned) patch.pinned = current.pinned;
+    if (current.hidden !== prev.hidden) patch.hidden = current.hidden;
     if (Object.keys(patch).length === 0) return true;
 
     setStatus('saving');
@@ -122,15 +129,24 @@ function Sheet({ note, onClose, onSave, onRequestDelete }: Props & { note: Note 
     };
   }, []);
 
-  // Land the caret at the end of the text, where the user most likely wants to add.
+  // Land the caret at the end of the text, where the user most likely wants to
+  // add. Runs on open and again once a hidden note is revealed.
   useEffect(() => {
+    if (masked) return;
     const el = bodyRef.current;
     if (!el) return;
     el.focus();
     el.setSelectionRange(el.value.length, el.value.length);
-  }, []);
+  }, [masked]);
 
   const pinLabel = draft.pinned ? t('notes.unpin') : t('notes.pin');
+  const hideLabel = draft.hidden ? t('notes.showText') : t('notes.hideText');
+
+  function toggleHidden() {
+    // Turning hiding on while editing must not snap the text away mid-edit.
+    if (!draft.hidden) setRevealed(true);
+    update({ hidden: !draft.hidden });
+  }
 
   return (
     <motion.div
@@ -171,6 +187,19 @@ function Sheet({ note, onClose, onSave, onRequestDelete }: Props & { note: Note 
             </button>
             <button
               type="button"
+              onClick={toggleHidden}
+              aria-pressed={draft.hidden}
+              aria-label={hideLabel}
+              title={hideLabel}
+              className={cn(
+                'flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-fg/[0.06]',
+                draft.hidden ? INK_TEXT[draft.color] : 'text-fg-muted',
+              )}
+            >
+              <EyeOff className="h-[18px] w-[18px]" strokeWidth={1.75} />
+            </button>
+            <button
+              type="button"
               onClick={() => void close()}
               aria-label={t('common.close')}
               title={t('common.close')}
@@ -189,15 +218,25 @@ function Sheet({ note, onClose, onSave, onRequestDelete }: Props & { note: Note 
             placeholder={t('notes.titlePlaceholder')}
             className="w-full bg-transparent text-lg font-semibold text-fg placeholder:text-fg-subtle focus:outline-none"
           />
-          <textarea
-            ref={bodyRef}
-            dir="auto"
-            value={draft.body}
-            onChange={(e) => update({ body: e.target.value })}
-            onKeyDown={(e) => checklistKeyDown(e, (body) => update({ body }))}
-            placeholder={t('notes.bodyPlaceholder')}
-            className="mt-2 w-full resize-none bg-transparent text-sm leading-relaxed text-fg placeholder:text-fg-subtle focus:outline-none"
-          />
+          {masked ? (
+            <MaskedBody
+              body={draft.body}
+              color={draft.color}
+              onReveal={() => setRevealed(true)}
+              hint={t('notes.hiddenEditorHint')}
+              className="mt-3 min-h-[160px]"
+            />
+          ) : (
+            <textarea
+              ref={bodyRef}
+              dir="auto"
+              value={draft.body}
+              onChange={(e) => update({ body: e.target.value })}
+              onKeyDown={(e) => checklistKeyDown(e, (body) => update({ body }))}
+              placeholder={t('notes.bodyPlaceholder')}
+              className="mt-2 w-full resize-none bg-transparent text-sm leading-relaxed text-fg placeholder:text-fg-subtle focus:outline-none"
+            />
+          )}
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-fg/10 px-5 py-3">

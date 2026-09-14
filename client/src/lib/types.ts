@@ -43,6 +43,8 @@ export interface Note {
   body: string;
   color: NoteColor;
   pinned: boolean;
+  /** Body is masked on the board and in the editor until revealed. */
+  hidden: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -52,6 +54,7 @@ export interface NoteInput {
   body?: string;
   color?: NoteColor;
   pinned?: boolean;
+  hidden?: boolean;
 }
 
 export interface Session {

@@ -1,4 +1,4 @@
-import { ListChecks, Pin, StickyNote } from 'lucide-react';
+import { EyeOff, ListChecks, Pin, StickyNote } from 'lucide-react';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { useI18n } from '../../i18n/LanguageProvider';
 import { INK_BG, INK_TEXT, NOTE_COLORS, PAPER } from '../../lib/notes';
@@ -33,6 +33,7 @@ export const NoteComposer = forwardRef<NoteComposerHandle, Props>(function NoteC
   const [body, setBody] = useState('');
   const [color, setColor] = useState<NoteColor>('amber');
   const [pinned, setPinned] = useState(false);
+  const [hidden, setHidden] = useState(false);
   const [saving, setSaving] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
@@ -52,6 +53,7 @@ export const NoteComposer = forwardRef<NoteComposerHandle, Props>(function NoteC
     setBody('');
     setColor('amber');
     setPinned(false);
+    setHidden(false);
     setOpen(false);
   }
 
@@ -63,7 +65,7 @@ export const NoteComposer = forwardRef<NoteComposerHandle, Props>(function NoteC
     }
     setSaving(true);
     try {
-      await onCreate({ title: title.trim(), body: body.replace(/\s+$/, ''), color, pinned });
+      await onCreate({ title: title.trim(), body: body.replace(/\s+$/, ''), color, pinned, hidden });
       reset();
     } catch {
       // The page already toasted the error; keep the draft so nothing is lost.
@@ -85,6 +87,7 @@ export const NoteComposer = forwardRef<NoteComposerHandle, Props>(function NoteC
   }, [open]);
 
   const pinLabel = pinned ? t('notes.unpin') : t('notes.pin');
+  const hideLabel = hidden ? t('notes.showText') : t('notes.hideText');
 
   return (
     <div
@@ -138,6 +141,19 @@ export const NoteComposer = forwardRef<NoteComposerHandle, Props>(function NoteC
               )}
             >
               <Pin className="h-4 w-4" strokeWidth={1.75} fill={pinned ? 'currentColor' : 'none'} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setHidden((h) => !h)}
+              aria-pressed={hidden}
+              aria-label={hideLabel}
+              title={hideLabel}
+              className={cn(
+                'flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-fg/[0.06]',
+                hidden ? INK_TEXT[color] : 'text-fg-muted',
+              )}
+            >
+              <EyeOff className="h-4 w-4" strokeWidth={1.75} />
             </button>
           </div>
           <textarea

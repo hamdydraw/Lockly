@@ -27,6 +27,8 @@ const createSchema = z.object({
   body: z.string().max(MAX_BODY).default(''),
   color: z.enum(NOTE_COLORS).default('amber'),
   pinned: z.boolean().default(false),
+  // Mask the body until revealed, like a password field.
+  hidden: z.boolean().default(false),
 });
 
 const updateSchema = createSchema.partial();
@@ -36,6 +38,7 @@ type NoteRow = {
   title: string;
   color: string;
   pinned: boolean;
+  hidden: boolean;
   ciphertext: string;
   iv: string;
   authTag: string;
@@ -50,6 +53,7 @@ function toNote(row: NoteRow, dataKey: Buffer) {
     body: decryptSecret({ iv: row.iv, authTag: row.authTag, ciphertext: row.ciphertext }, dataKey),
     color: row.color,
     pinned: row.pinned,
+    hidden: row.hidden,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -75,6 +79,7 @@ notesRouter.post('/', async (req, res) => {
       title: body.title,
       color: body.color,
       pinned: body.pinned,
+      hidden: body.hidden,
       ciphertext: sealed.ciphertext,
       iv: sealed.iv,
       authTag: sealed.authTag,
@@ -97,6 +102,7 @@ notesRouter.patch('/:id', async (req, res) => {
   if (body.title !== undefined) data.title = body.title;
   if (body.color !== undefined) data.color = body.color;
   if (body.pinned !== undefined) data.pinned = body.pinned;
+  if (body.hidden !== undefined) data.hidden = body.hidden;
   if (body.body !== undefined) {
     const sealed = encryptSecret(body.body, req.dataKey!);
     data.ciphertext = sealed.ciphertext;

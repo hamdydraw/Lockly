@@ -89,6 +89,8 @@ model Note {
   // Paper colour, one of the names in routes/notes.ts (amber | rose | sky | mint | lilac | slate).
   color      String   @default("amber")
   pinned     Boolean  @default(false)
+  // Mask the body on the board and in the editor until the user reveals it (like a password).
+  hidden     Boolean  @default(false)
 
   // Encrypted body as AES-256-GCM.
   ciphertext String
