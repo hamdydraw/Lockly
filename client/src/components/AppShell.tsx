@@ -1,4 +1,4 @@
-import { FolderLock, KeyRound, Lock, LogOut, Settings } from 'lucide-react';
+import { FolderLock, KeyRound, Lock, LogOut, Settings, StickyNote } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
@@ -11,6 +11,7 @@ import { ThemeToggle } from './ui/ThemeToggle';
 const nav: { to: string; label: MessageKey; icon: typeof KeyRound }[] = [
   { to: '/vault', label: 'nav.vault', icon: KeyRound },
   { to: '/files', label: 'nav.files', icon: FolderLock },
+  { to: '/notes', label: 'nav.notes', icon: StickyNote },
   { to: '/settings', label: 'nav.settings', icon: Settings },
 ];
 

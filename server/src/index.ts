@@ -11,6 +11,7 @@ import { apiLimiter, authLimiter } from './middleware/rateLimit.js';
 import { authRouter } from './routes/auth.js';
 import { filesRouter } from './routes/files.js';
 import { itemsRouter } from './routes/items.js';
+import { notesRouter } from './routes/notes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isProd = env.NODE_ENV === 'production';
@@ -66,6 +67,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authLimiter, authRouter);
 app.use('/api/items', apiLimiter, itemsRouter);
 app.use('/api/files', apiLimiter, filesRouter);
+app.use('/api/notes', apiLimiter, notesRouter);
 
 // Unknown API path → JSON 404 (before the SPA fallback below)
 app.use('/api', notFound);

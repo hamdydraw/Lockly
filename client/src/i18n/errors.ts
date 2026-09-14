@@ -31,6 +31,7 @@ const ERROR_MAP: ErrorRule[] = [
   { match: 'File not found', key: 'errors.fileNotFound' },
   { match: 'File data not found', key: 'errors.fileDataNotFound' },
   { match: 'Item not found', key: 'errors.itemNotFound' },
+  { match: 'Note not found', key: 'errors.noteNotFound' },
   // client/src/lib/api.ts
   { match: 'No Lockly server configured', key: 'errors.noServer' },
   {

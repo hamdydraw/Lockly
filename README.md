@@ -4,6 +4,11 @@ A self-hosted, single-user vault for sensitive credentials (bank logins, Windows
 accounts, cards, notes) and important files — everything encrypted at rest. Premium
 dark, security-focused UI (Linear / 1Password vibe).
 
+Alongside the vault and encrypted files there is a **Notes** board: colour-coded
+sticky notes with pinning, tappable checklists (`- [ ]` lines) and instant search,
+captured Keep-style from a one-line composer. Note bodies are encrypted with the same
+per-user data key as vault secrets.
+
 - **Frontend:** React + Vite + TypeScript, Tailwind, Framer Motion, TanStack Query
 - **Backend:** Node + Express + TypeScript, Prisma
 - **Database:** SQLite locally (no server needed); Postgres (e.g. free Neon) when hosted

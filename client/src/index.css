@@ -29,6 +29,20 @@ html[data-theme='dark'] {
   --danger-solid: 214 59 85;
   --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.5);
+  /* Sticky-note paper (card background) and ink (swatch, tape, checkbox). Dark
+     paper is a deep tint so `fg` stays readable; ink reuses the semantic hues. */
+  --note-amber: 61 50 22;
+  --note-amber-ink: 245 196 81;
+  --note-rose: 66 34 46;
+  --note-rose-ink: 255 122 142;
+  --note-sky: 26 46 70;
+  --note-sky-ink: 94 200 255;
+  --note-mint: 24 56 46;
+  --note-mint-ink: 91 214 143;
+  --note-lilac: 46 36 72;
+  --note-lilac-ink: 169 157 255;
+  --note-slate: 29 34 56;
+  --note-slate-ink: 126 135 158;
 }
 
 html[data-theme='light'] {
@@ -54,6 +68,19 @@ html[data-theme='light'] {
   --danger-solid: 200 50 75;
   --shadow-raised: 0 1px 2px rgb(16 18 32 / 0.06);
   --shadow-pop: 0 12px 32px rgb(16 18 32 / 0.14);
+  /* Light paper is a pastel; ink is the darker, contrast-checked hue. */
+  --note-amber: 255 243 196;
+  --note-amber-ink: 154 103 0;
+  --note-rose: 255 228 234;
+  --note-rose-ink: 200 50 75;
+  --note-sky: 224 240 255;
+  --note-sky-ink: 11 124 147;
+  --note-mint: 220 245 232;
+  --note-mint-ink: 21 122 70;
+  --note-lilac: 236 230 255;
+  --note-lilac-ink: 91 75 224;
+  --note-slate: 238 240 246;
+  --note-slate-ink: 90 97 120;
 }
 
 html,

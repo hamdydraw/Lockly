@@ -33,6 +33,27 @@ export interface FileMeta {
   createdAt: string;
 }
 
+/** Paper colours for sticky notes; the list itself lives in lib/notes.ts. */
+export type NoteColor = 'amber' | 'rose' | 'sky' | 'mint' | 'lilac' | 'slate';
+
+/** A sticky note. `body` arrives decrypted — the list endpoint opens every note. */
+export interface Note {
+  id: string;
+  title: string;
+  body: string;
+  color: NoteColor;
+  pinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NoteInput {
+  title?: string;
+  body?: string;
+  color?: NoteColor;
+  pinned?: boolean;
+}
+
 export interface Session {
   id: string;
   email: string;

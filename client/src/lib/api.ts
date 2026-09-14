@@ -1,6 +1,6 @@
 import { getApiBase, getToken, isNative, setToken, clearToken } from './config';
 import { saveBlob } from './download';
-import type { FileMeta, ItemFull, ItemInput, ItemMeta, Session } from './types';
+import type { FileMeta, ItemFull, ItemInput, ItemMeta, Note, NoteInput, Session } from './types';
 
 /**
  * Resolved per call rather than at module load: on Android the user can point
@@ -117,6 +117,15 @@ export const api = {
   updateItem: (id: string, input: Partial<ItemInput>) =>
     request(`/items/${id}`, { method: 'PUT', body: JSON.stringify(input) }),
   deleteItem: (id: string) => request(`/items/${id}`, { method: 'DELETE' }),
+
+  // ---- notes ----
+  /** Every note, body already decrypted, pinned first then most recently edited. */
+  listNotes: () => request<Note[]>('/notes'),
+  createNote: (input: NoteInput) =>
+    request<Note>('/notes', { method: 'POST', body: JSON.stringify(input) }),
+  updateNote: (id: string, input: NoteInput) =>
+    request<Note>(`/notes/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
+  deleteNote: (id: string) => request(`/notes/${id}`, { method: 'DELETE' }),
 
   // ---- files ----
   listFiles: () => request<FileMeta[]>('/files'),

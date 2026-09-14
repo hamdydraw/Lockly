@@ -31,6 +31,7 @@ model User {
 
   items          VaultItem[]
   files          StoredFile[]
+  notes          Note[]
   auditLogs      AuditLog[]
 }
 
@@ -76,6 +77,30 @@ model StoredFile {
 
   @@index([userId])
   @@index([userId, folder])
+}
+
+// Sticky notes. The title is plaintext (searchable, like VaultItem.title); the body is
+// sealed with the user's data key exactly like a vault-item secret.
+model Note {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title      String   @default("")
+  // Paper colour, one of the names in routes/notes.ts (amber | rose | sky | mint | lilac | slate).
+  color      String   @default("amber")
+  pinned     Boolean  @default(false)
+
+  // Encrypted body as AES-256-GCM.
+  ciphertext String
+  iv         String
+  authTag    String
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, pinned])
 }
 
 // Encrypted file bytes, when BLOB_STORAGE=db (hosts without a persistent disk, e.g. Render

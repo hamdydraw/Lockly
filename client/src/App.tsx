@@ -7,6 +7,7 @@ import { useI18n } from './i18n/LanguageProvider';
 import { getApiBase, isNative } from './lib/config';
 import { AuthPage } from './pages/AuthPage';
 import { FilesPage } from './pages/FilesPage';
+import { NotesPage } from './pages/NotesPage';
 import { ServerSetupPage } from './pages/ServerSetupPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { UnlockPage } from './pages/UnlockPage';
@@ -48,6 +49,7 @@ export default function App() {
           <Routes>
             <Route path="/vault" element={<VaultPage />} />
             <Route path="/files" element={<FilesPage />} />
+            <Route path="/notes" element={<NotesPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/vault" replace />} />
           </Routes>
